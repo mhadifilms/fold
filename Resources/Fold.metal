@@ -48,5 +48,12 @@ fragment float4 foldFragment(VertexOut in [[stage_in]], texture2d<float> desktop
     float fraction = clamp((sigma*sigma-variance0)/max(variance1-variance0,0.001f),0.0f,1.0f);
     float4 color = desktop.sample(s,uv,level(lower+fraction));
     color.rgb *= 1.0f-0.10f*progress*gradient;
+    // Rounded side shadows grow with the fold, like a surface turning away
+    // from the light. They shade the live pixels rather than exposing a gutter.
+    float edgeDistance = min(in.uv.x,1.0f-in.uv.x);
+    float edgeWidth = 0.015f+0.12f*pow(progress,0.75f)*(0.35f+0.65f*outer);
+    float sideFalloff = exp(-pow(edgeDistance/edgeWidth,2.0f));
+    float sideDepth = 0.80f*pow(progress,0.70f)*(0.20f+0.80f*outer);
+    color.rgb *= 1.0f-sideDepth*sideFalloff;
     return float4(color.rgb,1);
 }

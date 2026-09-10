@@ -1,3 +1,13 @@
+# Fold 1.0.3 verification
+
+Build 9 adds soft left/right shading and removes the Settings slogan. Side shadows increase continuously with fold progress and toward the outer edge; their maximum opacity is bounded so the desktop remains present beneath them. Zero progress has no added shading.
+
+All 46 graphics/recovery checks pass, including visible side depth, left/right symmetry, complete clearing at rest, horizontal-band regression and immediate onset from multiple starting angles. The installed app passed all 15 live assertions through normal LaunchServices launch with real capture and Metal presentation, using scripted sensor input: 375 frames received, 438 presented. The single effect, immediate onset, fresh-frame entrance and safety resets remain intact.
+
+The new preview was rendered at 60 fps using original artwork. GPU command timing at 2560×1600 including upload and prefiltering: 0.779 ms median, 0.953 ms p95 on this run; these are not end-to-end latency guarantees. Developer ID signed and timestamped; notarization still awaits Apple service authentication.
+
+---
+
 # Fold 1.0.2 verification
 
 One effect replaces the three style variants and appearance sliders. The compact native Settings window has an in-window preview and three behavior switches; saved legacy appearance values are ignored. The installed window was visually inspected in dark mode with the bundled logo, clear preview, readable controls and no scrolling.

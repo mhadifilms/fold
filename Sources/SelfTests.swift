@@ -107,7 +107,15 @@ enum SelfTests {
         let whiteResult=try gpu.renderOffscreen(white,settings:FoldSettings(angle:1),size:CGSize(width:320,height:200)).0
         let pixels=NSBitmapImageRep(cgImage:whiteResult)
         let perimeter=(0..<320).flatMap { [($0,0),($0,199)] }+(0..<200).flatMap { [(0,$0),(319,$0)] }
-        check(perimeter.allSatisfy { x,y in (pixels.colorAt(x:x,y:y)?.redComponent ?? 0)>0.5 },"Every edge pixel filled at nearly closed angle")
+        check(perimeter.allSatisfy { x,y in (pixels.colorAt(x:x,y:y)?.redComponent ?? 0)>0.10 },"Shaded edges retain image content at nearly closed angle")
+        let shaded=NSBitmapImageRep(cgImage:try gpu.renderOffscreen(white,settings:FoldSettings(angle:50),size:CGSize(width:320,height:200)).0)
+        let left=shaded.colorAt(x:0,y:30)!.redComponent
+        let right=shaded.colorAt(x:319,y:30)!.redComponent
+        let center=shaded.colorAt(x:160,y:30)!.redComponent
+        check(left < center-0.25 && right < center-0.25,"Side shadows give the fold visible depth")
+        check(abs(left-right)<0.01,"Side shading is balanced")
+        let clear=NSBitmapImageRep(cgImage:try gpu.renderOffscreen(white,settings:FoldSettings(angle:100),size:CGSize(width:320,height:200)).0)
+        check(clear.colorAt(x:0,y:30)!.redComponent>0.99,"Side shadows disappear completely at rest")
         let reduced=try gpu.renderOffscreen(sample,settings:FoldSettings(angle:50,reducedMotion:true),size:size)
         check(reduced.0.width==1280,"Reduced Motion renders")
         let sorted=timings.sorted()

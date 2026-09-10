@@ -17,10 +17,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 12) {
                 Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 48, height: 48).accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Fold").font(.system(size: 26, weight: .semibold))
-                    Text("A little motion. Naturally.").foregroundStyle(.secondary)
-                }
+                Text("Fold").font(.system(size: 26, weight: .semibold))
                 Spacer()
             }
             VStack(spacing: 10) {

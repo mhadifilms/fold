@@ -57,3 +57,7 @@ The input is a live ScreenCaptureKit frame, capped at 2560 pixels wide. Core Ima
 MTKView presents at the screen's available refresh rate, capped at 120 Hz. A display link handles application state, and sensor reads run independently at 60 Hz. The renderer interpolates between readings. Capture stays alive while automatic folding is armed, drops to 1 fps when fully clear, and returns to the display's requested cadence while folding. Pausing, holding the lid still, or reaching the nearly-closed timeout releases capture completely. The next lid movement rearms it from any position.
 
 A macOS overlay cannot move other apps' actual hit targets. Pause before clicking displaced controls. This is a visual utility, not a replacement window compositor.
+
+## Side shading, 1.0.3
+
+At the user's request, soft left and right shadows now give the single display more apparent curvature. Their width and depth grow continuously with folding and toward the outer edge. They multiply the live image instead of exposing empty borders, disappear at zero progress, and retain image content even near closure. This is an intentional expressive adaptation; it is not a claim that the Duo uses this exact shading. The Gaussian focus field and first-closing-degree onset are unchanged.

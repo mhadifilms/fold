@@ -2,7 +2,7 @@
 
 # Fold
 
-A native, open-source MacBook utility inspired by the iPhone Duo's folding transition. Your desktop stretches and progressively softens as you lower the lid, staying filled to every edge.
+A native, open-source MacBook utility inspired by the iPhone Duo's folding transition. Your desktop stretches and softens as you lower the lid, with curved side shadows that give the motion depth.
 
 Fold runs locally, with no account, analytics, recording files, network calls, or paid dependencies. MIT licensed.
 
