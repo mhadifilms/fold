@@ -1,4 +1,4 @@
-<p align="center"><img src="Resources/Logo.png" width="160" alt="A softly folded glass ribbon on a blue tile"></p>
+![Macfold 1.0 — Close the lid. Let the desktop follow.](docs/cover.png)
 
 # Macfold
 
@@ -8,7 +8,6 @@ Macfold runs locally, with no account, analytics, recording files, network calls
 
 [Download the app](https://github.com/mhadifilms/macfold/releases/latest) · [Motion study](docs/motion-study.md) · [Preview video](docs/motion-preview.mp4)
 
-![The default effect at a partial lid angle](docs/original-preset.png)
 
 ## Use
 
@@ -23,7 +22,7 @@ Holding the lid still for 2.5 seconds clears the effect and releases capture. At
 
 The generated preview needs no screen permission. **Preview desktop · 8 sec** is a bounded manual demonstration. **Restore original** restores the stronger reference-inspired default: stretch 72%, blur 85%, shade 28%, clear above 100°.
 
-## What changed in 2.1
+## Included in 1.0
 
 - Automatic operation after setup, optional menu bar icon, persisted settings, native launch-at-login registration.
 - The generated logo is included as both the Finder app icon and an explicitly loaded runtime icon, including Settings and Dock.

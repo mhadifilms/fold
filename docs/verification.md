@@ -1,4 +1,6 @@
-# Macfold 2.1 verification
+# Macfold 1.0 verification
+
+The first stable release is numbered 1.0.0; the earlier 2.x labels were development iterations. Build 4 changes release metadata only and retains the verified implementation below.
 
 September 10, 2026. M3 Max MacBook Pro, macOS 26.6.2, Apple silicon build targeting macOS 14+.
 
