@@ -135,6 +135,7 @@ final class AppModel: ObservableObject {
             if sensorAngle != value { sensorAngle = value }
         } else {
             sensorAngle = nil
+            lidReference.rebase(nil)
             if enabled { safety.suspend(); stopEffect(); message = "Waiting for the lid sensor to reconnect." }
         }
         // React on the sensor sample, not the slower stale-sensor watchdog.
@@ -155,7 +156,7 @@ final class AppModel: ObservableObject {
         } catch { launchAtLogin = LoginService.enabled; loginMessage = error.localizedDescription }
     }
     func suspendForSystem() {
-        suspended = true; safety.suspend(); effectAllowed = false; stopEffect()
+        suspended = true; safety.suspend(); lidReference.rebase(nil); effectAllowed = false; stopEffect()
     }
     func resumeAfterSystem() {
         safety.suspend(); effectAllowed = false; suspended = false
@@ -176,7 +177,13 @@ final class AppModel: ObservableObject {
         }
         guard enabled, !suspended else { return }
         let fresh = lastSensorAt.map { now - $0 < 0.75 } ?? false
+        let wasWaiting = safety.waitingForMotion
         effectAllowed = safety.permitsEffect(angle: fresh ? sensorAngle : nil, clearAngle: clearAngle, now: now)
+        if safety.waitingForMotion && !wasWaiting {
+            // The held-lid reset establishes a new resting posture. Keep this
+            // endpoint through the next fold instead of retaining an older maximum.
+            lidReference.rebase(fresh ? sensorAngle : nil)
+        }
         if waitingForMotion != safety.waitingForMotion { waitingForMotion = safety.waitingForMotion }
         if waitingForMotion {
             if captureIsRunning || overlayIsVisible { stopEffect() }
@@ -190,7 +197,7 @@ final class AppModel: ObservableObject {
         guard emergencyShortcutAvailable else { message = "The stop shortcut is unavailable. Close any app using Command-Shift-Escape, then reopen Fold."; return }
         guard hasPermission() else { return }
         stopEffect()
-        demo = false; enabled = true; safety = FoldSafety(); effectAllowed = false
+        demo = false; enabled = true; safety = FoldSafety(); lidReference.rebase(sensorAngle); effectAllowed = false
         message = "Following your lid. Start closing it to fold."
         refreshMenu()
     }

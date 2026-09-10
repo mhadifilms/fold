@@ -61,3 +61,7 @@ A macOS overlay cannot move other apps' actual hit targets. Pause before clickin
 ## Side shading, 1.0.3
 
 At the user's request, soft left and right shadows now give the single display more apparent curvature. Their width and depth grow continuously with folding and toward the outer edge. They multiply the live image instead of exposing empty borders, disappear at zero progress, and retain image content even near closure. This is an intentional expressive adaptation; it is not a claim that the Duo uses this exact shading. The Gaussian focus field and first-closing-degree onset are unchanged.
+
+## Remembering the resting posture, 1.0.4
+
+The open reference is scoped to the current fold. When the held-lid timeout clears the effect, the settled angle replaces the old reference. Starting or resuming automatic folding also samples the current position; sleep and sensor loss invalidate the previous reference. During closing and reversal, the endpoint remains fixed, so returning to the remembered posture clears the image. This replaces the previous lifetime maximum-angle behavior.

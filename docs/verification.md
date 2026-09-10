@@ -1,3 +1,15 @@
+# Fold 1.0.4 verification
+
+Build 10 resets the return point to the settled posture when the held-lid recovery clears the effect. It also resets on activation, sleep and sensor loss, keeping a fixed endpoint during the next fold.
+
+All 58 graphics/recovery checks pass. The new regressions start at 140°, settle at 110°, 95° or 70°, close from that posture, and verify that returning there produces zero effect progress. These also verify that closing does not move the reference downward. Previous onset, shading, horizontal-band and recovery checks continue to pass.
+
+The installed LaunchServices app passed all 17 live assertions with actual ScreenCaptureKit/Metal and scripted lid input. After settling at 30°, it folded at 29° and cleared when returned to 30°, without reopening to the earlier 112°. The run received 446 frames and presented 546; all prior live recovery checks also passed.
+
+Developer ID signed and timestamped. Notarization remains pending Apple service authentication.
+
+---
+
 # Fold 1.0.3 verification
 
 Build 9 adds soft left/right shading and removes the Settings slogan. Side shadows increase continuously with fold progress and toward the outer edge; their maximum opacity is bounded so the desktop remains present beneath them. Zero progress has no added shading.

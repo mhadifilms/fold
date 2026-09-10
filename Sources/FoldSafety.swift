@@ -42,10 +42,14 @@ struct FoldSafety {
     }
 }
 
-/// Track the open endpoint instead of assuming every desk posture is 100°.
+/// Track the current gesture's open endpoint, rebasing when its resting posture changes.
 struct LidReference {
     private(set) var openingAngle: Double?
     var clearAngle: Double { max(1, openingAngle ?? 100) }
+    mutating func rebase(_ angle: Double?) {
+        openingAngle = nil
+        observe(angle)
+    }
     mutating func observe(_ angle: Double?) {
         // Some sensors report 359/360 while closed; this is not an open posture.
         guard let angle, angle.isFinite, (0...180).contains(angle) else { return }

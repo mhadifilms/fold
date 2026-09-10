@@ -56,6 +56,9 @@ enum ExperienceTest {
             check(model.enabled,"Automatic folding remains enabled after reset")
             phase("Hold reset passed · desktop clear · still at 30°")
         }
+        after(8.05) { model.testSensorAngle = 29; phase("New fold from the settled 30° posture") }
+        after(8.45) { check(model.overlayIsVisible && abs(model.settings.clearAngle-30)<0.1,"New fold remembers the settled position instead of the earlier open angle"); model.testSensorAngle = 30 }
+        after(8.95) { check(!model.overlayIsVisible && model.settings.progress==0,"Returning to 30° clears without reopening to 112°") }
         after(9) { model.testSensorAngle = 112; phase("Reopening · automatically rearming") }
         for frame in 0...90 {
             let t = Double(frame)/60

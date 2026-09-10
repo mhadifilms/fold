@@ -43,6 +43,24 @@ enum SelfTests {
         var reference=LidReference()
         reference.observe(359); reference.observe(120); reference.observe(360)
         check(reference.clearAngle==120,"Closed-sensor wraparound cannot become the open reference")
+        // Reproduce a user changing their desk posture after opening farther.
+        for posture in [110.0,95,70] {
+            var reference=LidReference(), gate=FoldSafety()
+            reference.observe(140)
+            _=gate.permitsEffect(angle:140,clearAngle:reference.clearAngle,now:0)
+            reference.observe(posture)
+            _=gate.permitsEffect(angle:posture,clearAngle:reference.clearAngle,now:0.1)
+            let wasWaiting=gate.waitingForMotion
+            _=gate.permitsEffect(angle:posture,clearAngle:reference.clearAngle,now:2.7)
+            if gate.waitingForMotion && !wasWaiting { reference.rebase(posture) }
+            check(reference.clearAngle==posture,"Settling at \(Int(posture))° forgets the earlier 140° position")
+            reference.observe(posture-1)
+            check(gate.permitsEffect(angle:posture-1,clearAngle:reference.clearAngle,now:2.8),"A new fold starts from the remembered \(Int(posture))° posture")
+            reference.observe(posture-25)
+            check(reference.clearAngle==posture,"The return point stays fixed while closing from \(Int(posture))°")
+            reference.observe(posture)
+            check(FoldSettings(angle:posture,clearAngle:reference.clearAngle).progress==0,"Returning to \(Int(posture))° clears without opening farther")
+        }
         var safety = FoldSafety()
         check(!safety.permitsEffect(angle:70,clearAngle:100,now:0),"Stationary launch leaves desktop clear")
         check(safety.permitsEffect(angle:68,clearAngle:100,now:0.1),"Closing from a partly open startup works without opening first")
