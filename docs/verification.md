@@ -1,3 +1,15 @@
+# Fold 1.0.5 verification
+
+Build 11 removes remembered angles. Closing below 90° starts the effect; opening to 90° removes the overlay immediately, including any pending reveal or spring tail. Pausing while reopening below the threshold clears after 120 ms and cannot rearm on further opening. A new closing movement rearms. Closing holds clear after 450 ms, nearly-closed holds after 100 ms.
+
+All 43 current graphics/recovery checks pass, including fixed-angle entry, prompt exit, reopening pauses, continued-opening suppression, direction reversal, tiny jitter, sensor loss, wraparound and bounded transitions. Tests for the removed adaptive-angle behavior were replaced with the fixed-angle lifecycle cases.
+
+The installed app passed all 20 live assertions through normal LaunchServices launch with scripted sensor input and real ScreenCaptureKit/Metal. A visible fold was reopened to 45° and held; its overlay and capture were gone at the check 250 ms later. Further opening to 60° remained clear. Closing to 58° restarted the effect; opening to 90° cleared before the check 100 ms later. The run received 132 frames and presented 179. All remaining logo, capture and recovery checks passed.
+
+Developer ID signed and timestamped. Notarization remains pending Apple service authentication.
+
+---
+
 # Fold 1.0.4 verification
 
 Build 10 resets the return point to the settled posture when the held-lid recovery clears the effect. It also resets on activation, sleep and sensor loss, keeping a fixed endpoint during the next fold.

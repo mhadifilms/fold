@@ -18,9 +18,9 @@ Fold runs locally, with no account, analytics, recording files, network calls, o
 
 The settings **Automatic folding** switch persists across launches. **Start at login** uses Apple's ServiceManagement registration; macOS may require approval in Login Items. The Dock icon is visible only while Settings is open. A menu bar control is optional.
 
-Holding the lid still for 2.5 seconds clears the effect and releases capture. At 8° or below, the timeout is 350 ms. A continuous transition is bounded to eight seconds. The next lid movement resumes the effect from any position. You do not need to open past a particular angle. Starting while partly closed waits only for movement. Sensor loss, sleep, and session changes immediately clear the effect; movement after recovery resumes it.
+The effect starts only while closing below **90°**. Opening to 90° clears it immediately. If you stop while reopening below 90°, it clears after 120 ms; continuing to reopen keeps the desktop clear. Closing again can start a new fold from that position. Holding still while closing clears within 450 ms, or 100 ms at 8° and below. Sensor loss, sleep and session changes clear the effect; continuously moving transitions are bounded to eight seconds.
 
-Blur begins with the first detected closing movement from your open lid position, including above 100°. Reopening to that position clears it. When you settle at a different angle, that becomes the starting position for the next fold; an older, wider angle is forgotten. There is one reference-inspired effect. **Preview** plays it inside Settings using original sample artwork and needs no screen permission. The three settings control automatic folding, launch at login and the optional menu bar icon.
+There is one effect and no remembered starting angle. **Preview** plays the effect inside Settings using original sample artwork, without screen permission. The three settings control automatic folding, launch at login and the optional menu bar icon.
 
 ## Included in 1.0
 

@@ -1,7 +1,7 @@
 import Foundation
 
-/// A bounded transition that rearms on movement from any lid position.
-/// No startup, wake, or recovery path requires opening to a particular angle.
+/// A fixed-angle effect that only starts while closing. Reopening can unwind
+/// an active fold, but cannot resurrect one after it has already cleared.
 struct FoldSafety {
     private(set) var waitingForMotion = true
     private var lastAngle: Double?
@@ -9,50 +9,37 @@ struct FoldSafety {
     private var beganAt: Double?
     private var lastMotionAt: Double?
     private var motionAnchor: Double?
+    private var opening = false
     private var closedSince: Double?
 
     mutating func suspend() {
         waitingForMotion = true; restAngle = lastAngle; beganAt = nil
-        lastMotionAt = nil; motionAnchor = nil; closedSince = nil
+        lastMotionAt = nil; motionAnchor = nil; closedSince = nil; opening = false
     }
     mutating func permitsEffect(angle: Double?, clearAngle: Double, now: Double) -> Bool {
-        guard let angle, angle.isFinite, clearAngle.isFinite else {
+        guard let angle, angle.isFinite, (0...180).contains(angle), clearAngle.isFinite else {
             lastAngle = nil; suspend(); return false
         }
         lastAngle = angle
+        if angle >= clearAngle { suspend(); return false }
         if waitingForMotion {
             guard let restAngle else { self.restAngle = angle; return false }
-            // Reject tiny HID jitter while accepting a natural movement in either direction.
-            guard abs(angle-restAngle) >= 0.75 else { return false }
+            if angle >= restAngle { self.restAngle = angle; return false }
+            guard restAngle-angle >= 0.75 else { return false }
             waitingForMotion = false; self.restAngle = nil
         }
-        if angle >= clearAngle {
-            beganAt = nil; lastMotionAt = nil; motionAnchor = nil; closedSince = nil
-            return false
-        }
         if beganAt == nil { beganAt = now; lastMotionAt = now; motionAnchor = angle }
-        if abs(angle - (motionAnchor ?? angle)) >= 0.75 { lastMotionAt = now; motionAnchor = angle }
+        let delta = angle-(motionAnchor ?? angle)
+        if abs(delta) >= 0.75 {
+            lastMotionAt = now; motionAnchor = angle; opening = delta > 0
+        }
         if angle <= 8 {
             if closedSince == nil { closedSince = now }
         } else { closedSince = nil }
-        if now - beganAt! >= 8 || now - lastMotionAt! >= 2.5 || closedSince.map({ now - $0 >= 0.35 }) == true {
+        let holdLimit = opening ? 0.12 : 0.45
+        if now-beganAt! >= 8 || now-lastMotionAt! >= holdLimit || closedSince.map({ now-$0 >= 0.10 }) == true {
             suspend(); return false
         }
         return true
-    }
-}
-
-/// Track the current gesture's open endpoint, rebasing when its resting posture changes.
-struct LidReference {
-    private(set) var openingAngle: Double?
-    var clearAngle: Double { max(1, openingAngle ?? 100) }
-    mutating func rebase(_ angle: Double?) {
-        openingAngle = nil
-        observe(angle)
-    }
-    mutating func observe(_ angle: Double?) {
-        // Some sensors report 359/360 while closed; this is not an open posture.
-        guard let angle, angle.isFinite, (0...180).contains(angle) else { return }
-        openingAngle = max(openingAngle ?? angle, angle)
     }
 }

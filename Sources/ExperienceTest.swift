@@ -37,47 +37,47 @@ enum ExperienceTest {
             check(NSApp.activationPolicy() == .accessory,"Closing Settings removes Dock icon")
             model.activate(); phase("Settings closed · ready at 112°")
         }
-        after(2) { model.testSensorAngle = 111; phase("First closing degree · above the old threshold") }
-        after(2.8) {
-            check(model.overlayIsVisible && model.settings.progress > 0,"First closing degree above 100° presents the live effect")
-            model.testSensorAngle = 112
-        }
+        after(2) { model.testSensorAngle = 100; phase("Closing above 90° · desktop stays clear") }
+        after(2.5) { check(!model.overlayIsVisible && !model.captureIsRunning,"Closing above the fixed trigger stays clear") }
         for frame in 0...120 {
-            let t = Double(frame)/60
-            after(3+t) { model.testSensorAngle = 112-82*(0.5-0.5*cos(t/2 * .pi)); phaseText(model,prefix:"Closing") }
+            let t=Double(frame)/60
+            after(3+t) { model.testSensorAngle=112-82*(0.5-0.5*cos(t/2 * .pi)); phaseText(model,prefix:"Closing") }
         }
         after(4.5) {
-            check(model.receivedFrames > 0,"Live desktop frames arrive")
-            check(model.overlayIsVisible && model.presentedFrames > 0,"Actual Metal overlay appears with Settings closed")
+            check(model.receivedFrames>0,"Live desktop frames arrive")
+            check(model.overlayIsVisible && model.presentedFrames>0,"Actual overlay follows closing below 90 degrees")
         }
-        after(5.1) { phase("Holding at 30° · automatic reset in 2.5 seconds") }
-        after(8) {
-            check(!model.overlayIsVisible && !model.captureIsRunning,"Held lid clears overlay and releases capture")
+        after(5.6) {
+            check(!model.overlayIsVisible && !model.captureIsRunning,"Closing hold clears and releases capture promptly")
             check(model.enabled,"Automatic folding remains enabled after reset")
-            phase("Hold reset passed · desktop clear · still at 30°")
         }
-        after(8.05) { model.testSensorAngle = 29; phase("New fold from the settled 30° posture") }
-        after(8.45) { check(model.overlayIsVisible && abs(model.settings.clearAngle-30)<0.1,"New fold remembers the settled position instead of the earlier open angle"); model.testSensorAngle = 30 }
-        after(8.95) { check(!model.overlayIsVisible && model.settings.progress==0,"Returning to 30° clears without reopening to 112°") }
-        after(9) { model.testSensorAngle = 112; phase("Reopening · automatically rearming") }
+        after(6) { model.testSensorAngle=29 }
+        after(6.3) { check(model.overlayIsVisible,"A live fold is visible before the reopening-pause check"); model.testSensorAngle=45; phase("Reopening then stopping below 90°") }
+        after(6.55) { check(!model.overlayIsVisible && !model.captureIsRunning,"Pausing while reopening below the trigger clears the live overlay") }
+        after(6.6) { model.testSensorAngle=60 }
+        after(6.9) { check(!model.overlayIsVisible && !model.captureIsRunning,"Continuing to reopen does not bring blur back") }
+        after(7) { model.testSensorAngle=58 }
+        after(7.3) { check(model.overlayIsVisible,"Closing again rearms from the current angle"); model.testSensorAngle=90 }
+        after(7.4) { check(!model.overlayIsVisible,"Reaching 90 degrees clears without waiting for a spring tail") }
+        after(7.8) { model.testSensorAngle=112 }
         for frame in 0...90 {
-            let t = Double(frame)/60
-            after(10+t) { model.testSensorAngle = 112-107*(0.5-0.5*cos(t/1.5 * .pi)); phaseText(model,prefix:"Closing nearly shut") }
+            let t=Double(frame)/60
+            after(8+t) { model.testSensorAngle=112-107*(0.5-0.5*cos(t/1.5 * .pi)); phaseText(model,prefix:"Closing nearly shut") }
         }
-        after(11) { check(model.overlayIsVisible,"Reopening rearms without a button") }
-        after(12.2) { check(!model.overlayIsVisible && !model.captureIsRunning,"Nearly closed lid clears within 350 ms"); phase("Nearly-closed reset passed · no stuck animation") }
-        after(13) { model.suspendForSystem(); model.resumeAfterSystem(); model.testSensorAngle = 112; phase("Wake recovery · reopening automatically rearms") }
-        after(14) { model.testSensorAngle = 50 }
-        after(15) { check(model.overlayIsVisible,"Effect resumes after simulated sleep/wake"); model.testSensorAngle = nil }
-        after(15.5) { check(!model.overlayIsVisible,"Lost sensor fails clear"); model.testSensorAngle = 112; phase("Sensor loss cleared · reconnecting") }
-        after(16.5) { model.testSensorAngle = 45 }
-        after(17.5) { check(model.overlayIsVisible,"Sensor reconnection rearms automatically"); model.pause(); phase("Pause · desktop clear") }
-        after(18) {
+        after(9) { check(model.overlayIsVisible,"Another closing fold works") }
+        after(9.8) { check(!model.overlayIsVisible && !model.captureIsRunning,"Nearly closed clears promptly") }
+        after(10) { model.suspendForSystem(); model.resumeAfterSystem(); model.testSensorAngle=112 }
+        after(11) { model.testSensorAngle=50 }
+        after(11.3) { check(model.overlayIsVisible,"Effect resumes after simulated sleep/wake"); model.testSensorAngle=nil }
+        after(11.5) { check(!model.overlayIsVisible,"Lost sensor fails clear"); model.testSensorAngle=112 }
+        after(12) { model.testSensorAngle=45 }
+        after(12.3) { check(model.overlayIsVisible,"Sensor reconnection rearms on closing"); model.pause() }
+        after(12.6) {
             check(!model.captureIsRunning && !model.overlayIsVisible,"Pause releases every effect surface")
             delegate.showSettings(); phase("Fold · run complete · \(failures == 0 ? "all checks passed" : "failures detected")")
             print("FRAMES received=\(model.receivedFrames) presented=\(model.presentedFrames)")
         }
-        after(20) {
+        after(14) {
             Task { @MainActor in
                 do { try await recorder?.finish() } catch { print("FAIL recording finish: \(error)"); failures += 1 }
                 labelWindow?.close(); model.shutdown(); print("EXPERIENCE: \(failures == 0 ? "passed" : "failed")"); fflush(stdout)

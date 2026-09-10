@@ -44,7 +44,7 @@ A MacBook has one rigid display with a bottom hinge. This app adapts the observe
 
 ## Single effect, revised in 1.0.2
 
-The open endpoint follows the observed lid position; the first detected closing degree starts the effect, without waiting to cross 100°. The style alternatives and tuning sliders are removed. Previously saved appearance settings no longer change the effect.
+The current effect uses a fixed 90° trigger while closing (see the 1.0.5 behavior below). The style alternatives and tuning sliders are removed. Previously saved appearance settings no longer change the effect.
 
 Reviewing the consecutive opening frames again showed a continuous focus gradient, without repeated horizontal copies of sharp content. Version 1.0.2 replaces the nine widely spaced fragment samples and box mipmaps with a Gaussian-prefiltered pyramid and one continuous variance-based sample. A single horizontal stripe at 50° produced secondary intensity rises with the previous shader; the new shader has none in the same fixture. The regression allows one 8-bit quantization step.
 
@@ -62,6 +62,10 @@ A macOS overlay cannot move other apps' actual hit targets. Pause before clickin
 
 At the user's request, soft left and right shadows now give the single display more apparent curvature. Their width and depth grow continuously with folding and toward the outer edge. They multiply the live image instead of exposing empty borders, disappear at zero progress, and retain image content even near closure. This is an intentional expressive adaptation; it is not a claim that the Duo uses this exact shading. The Gaussian focus field and first-closing-degree onset are unchanged.
 
-## Remembering the resting posture, 1.0.4
+## Previous resting-posture behavior, 1.0.4 (removed)
 
 The open reference is scoped to the current fold. When the held-lid timeout clears the effect, the settled angle replaces the old reference. Starting or resuming automatic folding also samples the current position; sleep and sensor loss invalidate the previous reference. During closing and reversal, the endpoint remains fixed, so returning to the remembered posture clears the image. This replaces the previous lifetime maximum-angle behavior.
+
+## Fixed trigger and prompt clearing, 1.0.5
+
+Position memory has been removed at the user's request. Closing below 90° starts the effect. Reopening to 90° immediately removes the overlay without waiting for the renderer's spring to settle. If reopening stops below the trigger, 120 ms without meaningful movement clears and releases capture. Further opening cannot rearm; a new closing movement can. Closing holds clear after 450 ms, or after 100 ms near closure. The separate stale-sensor watchdog and eight-second ceiling remain.
