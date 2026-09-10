@@ -74,7 +74,7 @@ struct SettingsView: View {
                             Text("Not available on this Mac").foregroundStyle(.secondary)
                         }
                     }
-                    Text("Holding the lid still clears the effect after 2.5 seconds. Reopening rearms it automatically.").font(.caption).foregroundStyle(.secondary)
+                    Text("Holding the lid still clears the effect after 2.5 seconds. The next lid movement starts it again.").font(.caption).foregroundStyle(.secondary)
                 }.padding(24)
             }
             Divider()

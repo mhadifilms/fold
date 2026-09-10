@@ -1,3 +1,13 @@
+# Recovery correction
+
+The installed LaunchServices process was alive, but its Screen Recording permission was missing. Earlier developer-launched runs had passed; those did not prove that the standalone installed app had its own permission. The current installation is being verified through a normal macOS launch.
+
+Removed the requirement to open above 103 degrees. Startup, stationary reset, nearly-closed recovery and wake now resume on meaningful movement from any position, in either direction. Tiny sensor jitter is ignored. The stationary and maximum-duration protections remain.
+
+41 automated checks pass, including starting at 70 degrees, closing to 68, clearing while held, moving farther closed to 66 to resume, reopening slightly to 69 to resume, and recovery without opening fully.
+
+---
+
 # Macfold 1.0 verification
 
 The first stable release is numbered 1.0.0; the earlier 2.x labels were development iterations. Build 4 changes release metadata only and retains the verified implementation below.

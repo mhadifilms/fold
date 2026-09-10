@@ -22,7 +22,7 @@ final class AppModel: ObservableObject {
     } }
     @Published var launchAtLogin = LoginService.enabled
     @Published var loginMessage = ""
-    @Published var waitingForOpen = true
+    @Published var waitingForMotion = true
     private var safety = FoldSafety()
     private var effectAllowed = false
     private var suspended = false
@@ -182,10 +182,10 @@ final class AppModel: ObservableObject {
         guard enabled, !suspended else { return }
         let fresh = lastSensorAt.map { now - $0 < 0.75 } ?? false
         effectAllowed = safety.permitsEffect(angle: fresh ? sensorAngle : nil, clearAngle: clearAngle, now: now)
-        if waitingForOpen != safety.waitingForOpen { waitingForOpen = safety.waitingForOpen }
-        if waitingForOpen {
+        if waitingForMotion != safety.waitingForMotion { waitingForMotion = safety.waitingForMotion }
+        if waitingForMotion {
             if captureIsRunning || overlayIsVisible { stopEffect() }
-            message = "Ready when you reopen the lid. The desktop is clear."
+            message = "Ready for your next lid movement. The desktop is clear."
         } else {
             message = "Automatic folding is on. You can close Settings."
         }
@@ -226,7 +226,7 @@ final class AppModel: ObservableObject {
         if let deadline = demoDeadline, Date() >= deadline { pause(); return }
         guard (enabled || demo) && !suspended else { return }
         if permissionNeeded { return }
-        if enabled && safety.waitingForOpen { return }
+        if enabled && safety.waitingForMotion { return }
         if CACurrentMediaTime() < retryAfter { return }
         let effectVisible = settings.progress > 0.0001
         requestedCaptureRate = effectVisible || demo || CACurrentMediaTime() < warmCaptureUntil ? captureFPS : 1
@@ -241,7 +241,7 @@ final class AppModel: ObservableObject {
             metal?.source = frame
         }
         if let lastFrameAt, Date().timeIntervalSince(capture?.lastActivity ?? lastFrameAt) > 6 {
-            recoverCapture("Screen capture paused. Reopen the lid to retry."); return
+            recoverCapture("Screen capture paused. Move the lid to retry."); return
         }
         if effectVisible, metal?.source != nil, panel?.isVisible == false {
             // Prepare a flat, current frame invisibly before replacing the live desktop.

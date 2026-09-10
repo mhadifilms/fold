@@ -18,7 +18,7 @@ Macfold runs locally, with no account, analytics, recording files, network calls
 
 The settings **Automatic folding** switch persists across launches. **Start at login** uses Apple's ServiceManagement registration; macOS may require approval in Login Items. The Dock icon is visible only while Settings is open. A menu bar control is optional.
 
-Holding the lid still for 2.5 seconds clears the effect and releases capture. At 8° or below, the timeout is 350 ms. A continuous transition is bounded to eight seconds. Reopen above the clear angle plus 3° for 200 ms to rearm. Starting the app with the lid already partly closed keeps the desktop clear until reopening. Sensor loss, sleep, and session changes immediately clear the effect; reopening after recovery rearms it.
+Holding the lid still for 2.5 seconds clears the effect and releases capture. At 8° or below, the timeout is 350 ms. A continuous transition is bounded to eight seconds. The next lid movement resumes the effect from any position. You do not need to open past a particular angle. Starting while partly closed waits only for movement. Sensor loss, sleep, and session changes immediately clear the effect; movement after recovery resumes it.
 
 The generated preview needs no screen permission. **Preview desktop · 8 sec** is a bounded manual demonstration. **Restore original** restores the stronger reference-inspired default: stretch 72%, blur 85%, shade 28%, clear above 100°.
 
@@ -83,7 +83,7 @@ build/Macfold.app/Contents/MacOS/Macfold --integration-test
 
 It checks live capture, Metal presentation, clearing and reopening without a stream restart, timed completion, and pause during asynchronous startup. [Verification details](docs/verification.md).
 
-An additional visible lifecycle test closes Settings, folds, holds, reopens, checks the nearly-closed timeout, and exercises recovery. It scripts the sensor input while using the actual live capture and onscreen renderer:
+An additional visible lifecycle test closes Settings, folds, holds, moves again, checks the nearly-closed timeout, and exercises recovery. It scripts the sensor input while using the actual live capture and onscreen renderer:
 
 ```sh
 build/Macfold.app/Contents/MacOS/Macfold --experience-test

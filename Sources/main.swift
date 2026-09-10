@@ -44,7 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             observationTimer = Timer.scheduledTimer(withTimeInterval:0.25,repeats:true) { [weak self] timer in
                 guard let self else { timer.invalidate(); return }
                 let m = self.model
-                print("OBS t=\(String(format:"%.2f",CACurrentMediaTime()-started)) angle=\(m.sensorAngle ?? -1) automatic=\(m.automatic) enabled=\(m.enabled) overlay=\(m.overlayIsVisible) waiting=\(m.waitingForOpen) capture=\(m.captureIsRunning) login=\(LoginService.enabled) frames=\(m.presentedFrames)")
+                print("OBS t=\(String(format:"%.2f",CACurrentMediaTime()-started)) angle=\(m.sensorAngle ?? -1) automatic=\(m.automatic) enabled=\(m.enabled) overlay=\(m.overlayIsVisible) waiting=\(m.waitingForMotion) capture=\(m.captureIsRunning) login=\(LoginService.enabled) permissionNeeded=\(m.permissionNeeded) shortcut=\(m.emergencyShortcutAvailable) message=\(m.message.debugDescription) frames=\(m.presentedFrames)")
                 fflush(stdout)
                 if CACurrentMediaTime()-started > 180 { timer.invalidate() }
             }
