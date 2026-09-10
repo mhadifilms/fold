@@ -1,4 +1,18 @@
-# Fold 1.0.7 candidate verification
+# Fold 1.0.7 build 16 candidate verification
+
+Physical feedback on build 15 identified excessive vertical stretching. Build 16 retains the horizontal projection, side wedges, focus field and interaction, but uses 60% of the previous height compensation. Maximum hinge expansion drops from 3.24x to 1.71x; at 60 degrees it drops from 2.00x to 1.43x. This is a bounded visual approximation for an uncalibrated viewer, not an exact camera reconstruction.
+
+All 102 graphics and recovery checks passed. A new rendered-square regression measures actual pixel bounds at 0, 20, 40, 60, 72 and 100 degrees of travel. Its height-to-width ratio is 1.00, 1.00, 1.09, 1.30, 1.49 and 1.49 respectively, with width remaining 96–100 pixels from a 100-pixel source. These are panel-space measurements, not proof of identical apparent dimensions from every viewing position. The existing smooth-blur, coordinates, hinge contrast, side coverage and recovery checks also pass.
+
+The original-artwork preview was regenerated from 300 native Metal frames and inspected alongside the prior shader output. The simulation retains its existing physical-camera model; it demonstrates the changed render but cannot establish visual acceptance on the laptop. All gesture, reversal, hold and onset code is unchanged from build 15.
+
+The signed installed app passed all 26 live assertions with scripted lid input, actual ScreenCaptureKit and onscreen Metal: 364 frames received and 552 presented. Bundled logo/preview assets, first-degree onset, continuous partial reversal, full undo, hold recovery, repeated gestures, sensor loss/wraparound, wake and pause passed. It was then relaunched in normal background mode.
+
+GPU timing at 2560×1600 including upload and prefiltering: 1.113 ms median, 3.164 ms p95. The installed candidate is Developer ID signed and timestamped with the existing bundle identity. Signature verification passed. No public binary release or notarization submission was made in this pass.
+
+---
+
+# Fold 1.0.7 build 15 verification (superseded)
 
 Build 15 replaces both the panel-pinned texture and the earlier nonlinear stretch with inverse rigid-lid projection. The apparent image stays in the viewer's space while the physical panel crosses it. Opening uses the same position curve as closing; no first-opening-step dismissal or separate release animation remains. The 90-degree activation threshold is removed.
 

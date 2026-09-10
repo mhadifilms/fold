@@ -31,13 +31,16 @@ fragment float4 foldFragment(VertexOut in [[stage_in]], texture2d<float> desktop
     constexpr sampler s(coord::normalized, address::clamp_to_edge, filter::linear, mip_filter::linear);
     float progress = clamp(p.progress,0.0f,1.0f);
     float outer = 1.0f-in.uv.y;
-    // Project the physical lid back onto the gesture's original image plane.
-    // Both axes share one perspective denominator. The old independent power
-    // warps expanded content sideways and pinned the top instead of revealing it.
+    // Keep the shared perspective that reveals the sides. Full inverse-cosine
+    // compensation assumes an upright starting panel and a fixed eye position;
+    // on a normally inclined laptop it overcorrected height by up to 3.24x.
+    // Retain 60% of that foreshortening correction, bounding vertical expansion
+    // to 1.71x at the deepest pose without a hard clamp or a change on reversal.
     float rotation = min(72.0f,-40.0f*log(max(0.001f,1.0f-progress)))*M_PI_F/180.0f;
     rotation *= 1.0f-p.reducedMotion;
     float perspective = 1.0f/(1.0f-outer*sin(rotation)/2.7f);
-    float2 uv = float2(0.5f+(in.uv.x-0.5f)*perspective,outer*cos(rotation)*perspective);
+    float heightScale = mix(1.0f,cos(rotation),0.6f);
+    float2 uv = float2(0.5f+(in.uv.x-0.5f)*perspective,outer*heightScale*perspective);
     float gradient = pow(outer,2.65f);
     float sigma = 40.0f*pow(progress,0.75f)*gradient*p.width/1600.0f;
     // Interpolate variance between adjacent prefiltered levels for a continuous

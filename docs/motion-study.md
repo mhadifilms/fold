@@ -99,13 +99,13 @@ This remains one reversible, lid-driven effect. The fixed 90° trigger, immediat
 
 The previous interpretation of “stays in place” was wrong: version 1.0.6 pinned texture coordinates to the rotating panel, so the image still moved with the lid. The requested illusion instead keeps the apparent image nearly stationary in the viewer's space while the physical panel moves around it. The user explicitly confirmed this interpretation.
 
-The earlier software warp was also wrong. It used different nonlinear mappings on each axis, expanded the image horizontally and pinned the top edge. The candidate replaces both approaches with one inverse physical projection. With vertical panel coordinate `y`, closing travel `a` in radians and viewing distance `d = 2.7` screen heights:
+The earlier software warp was also wrong. It used different nonlinear mappings on each axis, expanded the image horizontally and pinned the top edge. Build 15 replaced both approaches with inverse physical projection. After physical feedback that it still stretched too far, build 16 retains the shared perspective but limits height compensation. With vertical panel coordinate `y`, closing travel `a` in radians and viewing distance `d = 2.7` screen heights:
 
 - Perspective denominator: `1 - y * sin(a) / d`.
 - Source horizontal coordinate: `0.5 + (x - 0.5) / denominator`.
-- Source vertical coordinate: `y * cos(a) / denominator`.
+- Source vertical coordinate: `y * (0.4 + 0.6 * cos(a)) / denominator`.
 
-This is the inverse of a rigid lid rotating toward the viewer. After physical projection, image landmarks remain in place and the moving top edge crosses the image. Source coordinates beyond the horizontal image extent produce the dark side wedges; they are no longer independent painted shadows. Edge coverage has a small soft transition. The outer focus coefficient is 40 pixels at a 1600-pixel source width, with spatial exponent 2.65 and progress exponent 0.75. The Gaussian pyramid remains floating point to avoid horizontal bands. Rotation is bounded at 72 degrees for the almost-edge-on case; this and the assumed viewing distance are visual adaptation parameters, not measurements of the viewer's eyes.
+Full inverse-cosine compensation assumed a perpendicular starting image plane and a fixed viewer. It overcorrected vertical dimensions on the user's laptop. The current mapping retains 60% of the height correction: the hinge expansion at 60 degrees falls from 2.00x to 1.43x, and its maximum falls from 3.24x to 1.71x. Horizontal perspective and side wedges are unchanged. This deliberately favors restrained proportions over exact world anchoring under an uncalibrated camera model. It is a visual fit, not a recovered reference-camera calibration. Source coordinates beyond the horizontal image extent produce the dark side wedges; they are no longer independent painted shadows. Edge coverage has a small soft transition. The outer focus coefficient is 40 pixels at a 1600-pixel source width, with spatial exponent 2.65 and progress exponent 0.75. The Gaussian pyramid remains floating point to avoid horizontal bands. Rotation is bounded at 72 degrees for the almost-edge-on case; this and the assumed viewing distance are visual adaptation parameters, not measurements of the viewer's eyes.
 
 ### Continuous interaction
 

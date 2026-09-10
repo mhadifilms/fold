@@ -124,14 +124,13 @@ enum SelfTests {
         let hingePeak=(550..<625).max(by:{focusProfile[$0]<focusProfile[$1]})!
         let rotation=min(72.0,-40*log(0.3)) * Double.pi/180
         let physicalY=Double(625-hingePeak)/625
-        let projectedY=physicalY*cos(rotation)/(1-physicalY*sin(rotation)/2.7)
-        check(abs(projectedY-43.0/625)<0.01,"Hinge detail stays anchored after physical lid projection")
+        let projectedY=physicalY*(0.4+0.6*cos(rotation))/(1-physicalY*sin(rotation)/2.7)
+        check(abs(projectedY-43.0/625)<0.01,"Hinge detail follows the bounded projection")
         check(focusProfile[hingePeak]>0.75,"Detail near the hinge retains its contrast")
         check(focusProfile[0..<300].max()!<0.25,"The same detail defocuses strongly near the outer edge")
         // Encode coordinates as color. Linear ramps survive Gaussian blur;
         // dividing by the constant blue channel cancels the edge shading.
-        // Compare against the inverse of physical lid projection, so the test
-        // checks a stationary apparent image instead of pinning it to the panel.
+        // Check sample placement separately from the shape limits below.
         let ramp=NSBitmapImageRep(bitmapDataPlanes:nil,pixelsWide:1000,pixelsHigh:625,bitsPerSample:8,samplesPerPixel:4,hasAlpha:true,isPlanar:false,colorSpaceName:.deviceRGB,bytesPerRow:4000,bitsPerPixel:32)!
         for y in 0..<625 { for x in 0..<1000 {
             let i=y*4000+x*4
@@ -149,10 +148,29 @@ enum SelfTests {
                 let outer=1-(Double(y)+0.5)/625
                 let perspective=1/(1-outer*sin(rotation)/2.7)
                 let sourceX=0.5+((Double(x)+0.5)/1000-0.5)*perspective
-                let sourceY=1-outer*cos(rotation)*perspective
+                let sourceY=1-outer*(0.4+0.6*cos(rotation))*perspective
                 error=max(error,abs(CGFloat(sourceX)-b.redComponent/b.blueComponent),abs(CGFloat(sourceY)-b.greenComponent/b.blueComponent))
             } }
-            check(error<0.014,"One physical perspective projection preserves image position at \(Int(angle))°")
+            check(error<0.014,"Bounded perspective samples the expected image position at \(Int(angle))°")
+        }
+        // Measure a rendered square, not a restatement of the UV formula.
+        // Full compensation made this near-hinge shape roughly 2.8x as tall
+        // as wide at deep folds. Bound anisotropy while preserving side width.
+        let square=CIImage(color:CIColor(red:1,green:1,blue:1))
+            .cropped(to:CGRect(x:450,y:45,width:100,height:100)).composited(over:dark)
+        for travel in [0.0,20,40,60,72,100] {
+            let settings=FoldSettings(projectionProgress:1-exp(-travel/40))
+            let rendered=NSBitmapImageRep(cgImage:try gpu.renderOffscreen(square,settings:settings,size:CGSize(width:1000,height:625)).0)
+            var minX=1000,maxX=0,minY=625,maxY=0
+            for y in 250..<625 { for x in 400..<600 {
+                if rendered.colorAt(x:x,y:y)!.redComponent>0.5 {
+                    minX=min(minX,x);maxX=max(maxX,x);minY=min(minY,y);maxY=max(maxY,y)
+                }
+            } }
+            let width=Double(maxX-minX+1),height=Double(maxY-minY+1)
+            print("SHAPE travel=\(travel) width=\(width) height=\(height) aspect=\(height/width)")
+            check(width>=85 && width<=101 && height/width<=1.7 && height/width>=0.85,
+                  "A square retains bounded proportions through \(Int(travel)) degrees of folding")
         }
         // A white field must remain filled at all sampled angles, including every edge pixel.
         let white=CIImage(color:CIColor(red:1,green:1,blue:1)).cropped(to:CGRect(x:0,y:0,width:1000,height:625))
