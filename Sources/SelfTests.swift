@@ -85,7 +85,7 @@ enum SelfTests {
         // defocuses. Scan its vertical intensity profile for secondary peaks.
         let dark=CIImage(color:CIColor(red:0,green:0,blue:0)).cropped(to:CGRect(x:0,y:0,width:1000,height:625))
         let stripe=CIImage(color:CIColor(red:1,green:1,blue:1)).cropped(to:CGRect(x:0,y:350,width:1000,height:6)).composited(over:dark)
-        for angle in [80.0,50,20] {
+        for angle in stride(from:95.0,through:5.0,by:-5.0) {
             let result=try gpu.renderOffscreen(stripe,settings:FoldSettings(angle:angle),size:CGSize(width:1000,height:625)).0
             let bitmap=NSBitmapImageRep(cgImage:result)
             let profile=(0..<625).map { Double(bitmap.colorAt(x:500,y:$0)!.redComponent) }
@@ -95,6 +95,38 @@ enum SelfTests {
             print("BAND \(Int(angle)) excess=\(rise+fall) peak=\(profile[peak])")
             if let folder { try bitmap.representation(using:.png,properties:[:])!.write(to:folder.appendingPathComponent("stripe-\(Int(angle)).png")) }
             check(rise+fall <= 1.0/255.0+0.0001,"A horizontal edge stays one smooth blur at \(Int(angle))°")
+        }
+        // The same detail stays readable and anchored near the hinge while
+        // defocusing at the moving edge. This catches whole-screen stretching.
+        let hingeBar=CIImage(color:CIColor(red:1,green:1,blue:1)).cropped(to:CGRect(x:0,y:40,width:1000,height:6))
+        let outerBar=CIImage(color:CIColor(red:1,green:1,blue:1)).cropped(to:CGRect(x:0,y:550,width:1000,height:6))
+        let focusFixture=hingeBar.composited(over:outerBar.composited(over:dark))
+        let focus=NSBitmapImageRep(cgImage:try gpu.renderOffscreen(focusFixture,settings:FoldSettings(angle:30),size:CGSize(width:1000,height:625)).0)
+        let focusProfile=(0..<625).map { Double(focus.colorAt(x:500,y:$0)!.redComponent) }
+        let hingePeak=(550..<625).max(by:{focusProfile[$0]<focusProfile[$1]})!
+        check(abs(hingePeak-582)<=4,"Detail near the hinge stays anchored during a deep fold")
+        check(focusProfile[hingePeak]>0.75,"Detail near the hinge retains its contrast")
+        check(focusProfile[0..<300].max()!<0.25,"The same detail defocuses strongly near the outer edge")
+        // Encode coordinates as color. Linear ramps survive Gaussian blur;
+        // dividing by the constant blue channel cancels the edge shading.
+        // Any actual UV stretch, scale or translation still changes the ratios.
+        let ramp=NSBitmapImageRep(bitmapDataPlanes:nil,pixelsWide:1000,pixelsHigh:625,bitsPerSample:8,samplesPerPixel:4,hasAlpha:true,isPlanar:false,colorSpaceName:.deviceRGB,bytesPerRow:4000,bitsPerPixel:32)!
+        for y in 0..<625 { for x in 0..<1000 {
+            let i=y*4000+x*4
+            ramp.bitmapData![i]=UInt8(x*255/999)
+            ramp.bitmapData![i+1]=UInt8(y*255/624)
+            ramp.bitmapData![i+2]=255; ramp.bitmapData![i+3]=255
+        } }
+        let coordinateImage=CIImage(cgImage:ramp.cgImage!)
+        let original=NSBitmapImageRep(cgImage:try gpu.renderOffscreen(coordinateImage,settings:FoldSettings(angle:100),size:CGSize(width:1000,height:625)).0)
+        for angle in [75.0,50,25] {
+            let result=NSBitmapImageRep(cgImage:try gpu.renderOffscreen(coordinateImage,settings:FoldSettings(angle:angle),size:CGSize(width:1000,height:625)).0)
+            var error:CGFloat=0
+            for y in [156,312,468] { for x in [250,500,750] {
+                let a=original.colorAt(x:x,y:y)!,b=result.colorAt(x:x,y:y)!
+                error=max(error,abs(a.redComponent/a.blueComponent-b.redComponent/b.blueComponent),abs(a.greenComponent/a.blueComponent-b.greenComponent/b.blueComponent))
+            } }
+            check(error<0.012,"Desktop coordinates stay fixed across the display at \(Int(angle))°")
         }
         // A white field must remain filled at all sampled angles, including every edge pixel.
         let white=CIImage(color:CIColor(red:1,green:1,blue:1)).cropped(to:CGRect(x:0,y:0,width:1000,height:625))

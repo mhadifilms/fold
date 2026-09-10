@@ -42,6 +42,7 @@ final class FoldGPU {
     private let pipeline: MTLRenderPipelineState
     private let downsample: MTLComputePipelineState
     private var levels: [MTLTexture] = []
+    private var horizontalLevels: [MTLTexture] = []
     private var input: MTLTexture?
     private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
     init() throws {
@@ -68,11 +69,16 @@ final class FoldGPU {
         let scale=min(1,2560/extent.width)
         let width=max(1,Int(extent.width*scale)),height=max(1,Int(extent.height*scale))
         if input?.width != width || input?.height != height {
-            let desc=MTLTextureDescriptor.texture2DDescriptor(pixelFormat:.bgra8Unorm,width:width,height:height,mipmapped:true)
+            let desc=MTLTextureDescriptor.texture2DDescriptor(pixelFormat:.rgba16Float,width:width,height:height,mipmapped:true)
             desc.usage=[.shaderRead,.shaderWrite,.renderTarget];desc.storageMode = .private
             input=device.makeTexture(descriptor:desc)
             levels = (0..<(input?.mipmapLevelCount ?? 0)).map { level in
-                input!.makeTextureView(pixelFormat:.bgra8Unorm,textureType:.type2D,levels:level..<(level+1),slices:0..<1)!
+                input!.makeTextureView(pixelFormat:.rgba16Float,textureType:.type2D,levels:level..<(level+1),slices:0..<1)!
+            }
+            horizontalLevels = (1..<levels.count).map { level in
+                let desc=MTLTextureDescriptor.texture2DDescriptor(pixelFormat:.rgba16Float,width:levels[level].width,height:levels[level-1].height,mipmapped:false)
+                desc.usage=[.shaderRead,.shaderWrite]; desc.storageMode = .private
+                return device.makeTexture(descriptor:desc)!
             }
         }
         guard let input else { return }
@@ -80,12 +86,17 @@ final class FoldGPU {
             .transformed(by:CGAffineTransform(scaleX:CGFloat(width)/extent.width,y:CGFloat(height)/extent.height))
         context.render(normalized,to:input,commandBuffer:command,bounds:CGRect(x:0,y:0,width:width,height:height),colorSpace:colorSpace)
         for level in 1..<levels.count {
-            guard let encoder=command.makeComputeCommandEncoder() else { continue }
-            encoder.setComputePipelineState(downsample)
-            encoder.setTexture(levels[level-1],index:0)
-            encoder.setTexture(levels[level],index:1)
-            encoder.dispatchThreads(MTLSize(width:levels[level].width,height:levels[level].height,depth:1),threadsPerThreadgroup:MTLSize(width:16,height:16,depth:1))
-            encoder.endEncoding()
+            for horizontal in [true,false] {
+                guard let encoder=command.makeComputeCommandEncoder() else { continue }
+                let source=horizontal ? levels[level-1] : horizontalLevels[level-1]
+                let target=horizontal ? horizontalLevels[level-1] : levels[level]
+                var direction:UInt32=horizontal ? 1 : 0
+                encoder.setComputePipelineState(downsample)
+                encoder.setTexture(source,index:0); encoder.setTexture(target,index:1)
+                encoder.setBytes(&direction,length:MemoryLayout<UInt32>.stride,index:0)
+                encoder.dispatchThreads(MTLSize(width:target.width,height:target.height,depth:1),threadsPerThreadgroup:MTLSize(width:16,height:16,depth:1))
+                encoder.endEncoding()
+            }
         }
     }
     func encode(target: MTLTexture, command: MTLCommandBuffer, settings: FoldSettings, progress: Double) {

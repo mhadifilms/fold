@@ -52,7 +52,7 @@ The projective vertical mapping now has a finite slope at both endpoints, avoidi
 
 ## Rendering
 
-The input is a live ScreenCaptureKit frame, capped at 2560 pixels wide. Core Image uploads each new frame to a reusable Metal texture. A Gaussian pyramid is generated only for new input. A full-screen Metal fragment pass applies inverse projection, spatially varying blur and shade, using clamped texture sampling. It never renders a smaller quadrilateral over black.
+The input is a live ScreenCaptureKit frame, capped at 2560 pixels wide. Core Image uploads each new frame to a reusable Metal texture. A Gaussian pyramid is generated only for new input. A full-screen Metal fragment pass applies spatially varying blur and shade at fixed desktop coordinates, using clamped texture sampling. It never renders a smaller quadrilateral over black.
 
 MTKView presents at the screen's available refresh rate, capped at 120 Hz. A display link handles application state, and sensor reads run independently at 60 Hz. The renderer interpolates between readings. Capture stays alive while automatic folding is armed, drops to 1 fps when fully clear, and returns to the display's requested cadence while folding. Pausing, holding the lid still, or reaching the nearly-closed timeout releases capture completely. The next lid movement rearms it from any position.
 
@@ -69,3 +69,27 @@ The open reference is scoped to the current fold. When the held-lid timeout clea
 ## Fixed trigger and prompt clearing, 1.0.5
 
 Position memory has been removed at the user's request. Closing below 90° starts the effect. Reopening to 90° immediately removes the overlay without waiting for the renderer's spring to settle. If reopening stops below the trigger, 120 ms without meaningful movement clears and releases capture. Further opening cannot rearm; a new closing movement can. Closing holds clear after 450 ms, or after 100 ms near closure. The separate stale-sensor watchdog and eight-second ceiling remain.
+
+## Broader reference pass, 1.0.6
+
+The comparison now includes the launch presentation, product demonstration, real-device footage and the requested MacBook example. Reference media stays in private research scratch space; the repository contains only original artwork and renders.
+
+| Source | Inspection performed | Useful distinction |
+|---|---|---|
+| [Apple launch, Duo chapter](https://www.youtube.com/watch?v=39BalPDuTo0&t=3159s), via [Apple's event stream](https://www.apple.com/apple-events/) | Chapter overview plus 5 fps sequences around 55:14–55:24 (Home Screen) and 1:03:42–1:03:52 (Mail), with frame times approximate to the stream cut. | The focus gradient applies to app content too; it is not just a Home Screen wallpaper trick. |
+| [Apple product demonstration](https://www.apple.com/iphone-duo/) | Overview of the film, 10 fps sequences at 9–13 s, 74–78 s and 170–177 s; all 60 consecutive frames at approximately 10.5–12.5 s. | The rotating area softens while the adjacent, stationary area remains readable; detail returns continuously as the panel settles. |
+| [Marques Brownlee's folding clip](https://x.com/MKBHD/status/2097782855141335144) | Opening and closing overview at 2 fps, cross-checked with the earlier consecutive-frame study. | This is the same demonstration circulated in the earlier Reddit reference, not an additional independent device sample. |
+| [João Franco's MacBook example](https://x.com/JoaoFranco_03/status/2098069223171916209) | Complete 15.6-second sequence at 2 fps, plus closing at 10 fps from 3.5–6.5 s. | Dark sides and a comparatively stable, clear Dock make the single display read as a turning surface. |
+| [Brian Tong hands-on](https://www.youtube.com/watch?v=xdCruGl8ORU) and [Mateusz Krawczyk hands-on](https://www.youtube.com/watch?v=s7tG5AFWHis) | Selected YouTube storyboard frames spanning lock screen, Home Screen, Photos, video and partially folded positions. Direct video retrieval returned HTTP 403; these are supplemental still-image checks, not continuous timing evidence. | App layouts and controls change independently of the physical hinge, so that layout reflow should not be imitated by stretching the entire Mac desktop. |
+
+The launch was successfully inspected through Apple's own HLS stream after YouTube video retrieval failed. Its Home Screen sequence also appears in the product demonstration. Repeated footage is not counted as independent evidence. None of these clips provide synchronized hinge-angle telemetry, so the numerical curves below remain a visual fit.
+
+### Resulting native adaptation
+
+The physical MacBook lid supplies the perspective. At the user's correction, version 1.0.6 removes all software projection, stretch, scaling and translation. Every desktop coordinate stays fixed. Only focus and illumination change. This replaces the earlier projective adaptation described in the historical sections above.
+
+The blur's spatial exponent changes from 1.15 to 1.85. This preserves much more readable detail near the hinge while the outer edge still becomes a broad defocused image. The outer blur coefficient increases from 84 to 96 pixels at a 1600-pixel source width, with a 0.90 progress exponent. Side shadows remain visible, but narrow and fade more strongly toward the hinge. They shade existing pixels; no empty black gutters are added.
+
+The Gaussian prefilter now uses a wider separable 13-tap kernel, implemented in seven bilinear reads per axis with reusable floating-point intermediate and pyramid textures. This prevents coarse pyramid texels from creating faint bands across a changing focus field. Prefiltering runs only when a new capture arrives; the display pass remains one variance-interpolated texture sample. Rendered regressions check horizontal blur bands every 5° from 95° to 5°, fixed desktop coordinates across the display, high contrast near the hinge and stronger defocus at the outer edge.
+
+This remains one reversible, lid-driven effect. The fixed 90° trigger, immediate threshold clearing, 120 ms reopening-pause reset, closing-hold reset and nearly-closed reset are unchanged. The Duo can maintain useful content while partly folded; a MacBook overlay must instead get out of the user's way when movement stops.

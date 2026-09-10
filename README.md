@@ -2,7 +2,7 @@
 
 # Fold
 
-A native, open-source MacBook utility inspired by the iPhone Duo's folding transition. Your desktop stretches and softens as you lower the lid, with curved side shadows that give the motion depth.
+A native, open-source MacBook utility inspired by the iPhone Duo's folding transition. Your desktop stays in place as you lower the lid. Progressive blur and soft side shadows follow the fold; the physical lid supplies the perspective.
 
 Fold runs locally, with no account, analytics, recording files, network calls, or paid dependencies. MIT licensed.
 
@@ -28,7 +28,7 @@ There is one effect and no remembered starting angle. **Preview** plays the effe
 - The generated logo is included as both the Finder app icon and an explicitly loaded runtime icon, including Settings and Dock.
 - Held-lid, nearly-closed, stale-sensor, sleep/wake and maximum-duration recovery.
 - A fresh-frame handoff and 120 ms entrance blend remove the abrupt switch into the overlay. Closing motion warms capture before the fold begins.
-- A continuous focus gradient and smooth projective stretch, informed by consecutive Duo reference frames. A Gaussian pyramid avoids repeated horizontal blur bands, and pixels fill every edge.
+- A continuous focus gradient with fixed desktop coordinates, informed by the Apple launch, product demonstration and Duo reference frames. A Gaussian pyramid avoids repeated horizontal blur bands, and pixels fill every edge.
 - A visible end-to-end test for the actual capture and presentation pipeline, with an optional screen recording for local review.
 
 Rendering follows the display up to 120 Hz. Capture stays ready at 1 fps when armed and clear, and releases completely after a safety reset or pause. The overlay changes pixels; other apps' click targets remain in their original positions.
@@ -96,7 +96,7 @@ Adding `--proof-video /absolute/path/run.mov` explicitly records the display for
 - `Sources/AppModel.swift`: lifecycle, menu bar, authorization, capture session, stop handling.
 - `Sources/LidSensor.swift`: direct IOKit HID feature report reading, at 60 Hz.
 - `Sources/FoldRenderer.swift`: display-paced Metal presentation and motion interpolation.
-- `Resources/Fold.metal`: full-screen stretch, spatial blur, and shade.
+- `Resources/Fold.metal`: spatial blur and shade with no software distortion.
 - `Sources/DesktopCapture.swift`: ScreenCaptureKit with this app excluded.
 - `Sources/SettingsView.swift`: native SwiftUI controls.
 

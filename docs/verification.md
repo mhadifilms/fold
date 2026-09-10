@@ -1,3 +1,19 @@
+# Fold 1.0.6 verification
+
+Build 13 removes all geometric distortion. The desktop remains at fixed coordinates; the physical lid supplies perspective. Only progressive blur and edge shading change. The blur is clearer near the hinge and stronger toward the outer edge. A wider separable Gaussian with floating-point pyramid textures removes faint coarse-level blur bands.
+
+All 65 graphics/recovery checks pass. The horizontal-stripe regression now covers every 5° from 95° to 5°. New rendered coordinate-ramp checks detect scaling, displacement or projection across nine points at three folding angles, independently of shading. Additional detail fixtures check clarity and anchoring near the hinge and strong defocus toward the outer edge. The fixed 90° trigger and all prompt-clearing checks still pass.
+
+The Developer ID signed installation passed all 20 live assertions with actual ScreenCaptureKit and onscreen Metal presentation, using scripted sensor input. It received 183 desktop frames and presented 244 frames. Logo loading, hidden menu bar, Settings closure, entry, stationary clearing, reopening pauses, threshold clearing, simulated wake, sensor recovery and pause cleanup all passed. The app was then relaunched in normal background mode.
+
+The cold-recovery portions of the live test now simulate continuous one-second closing gestures. The former instantaneous angle jump with a 300 ms visibility deadline intermittently raced capture startup; the revised test still requires a presented overlay before exercising loss and cleanup. Production recovery delays and thresholds were not lengthened.
+
+GPU command timing at 2560×1600 including upload and prefiltering: 1.156 ms median, 3.854 ms p95 on this run. These are GPU timings, not end-to-end latency guarantees. A new 60 fps preview was rendered using original artwork. The launch, product demonstration and requested MacBook reference were inspected as documented in the motion study. This release remains a visual adaptation, not Apple's extracted compositor.
+
+Developer ID signed and timestamped; signature verification passed. Notarization still awaits Apple service authentication: the `fold-notary` Keychain profile is absent.
+
+---
+
 # Fold 1.0.5 verification
 
 Build 11 removes remembered angles. Closing below 90° starts the effect; opening to 90° removes the overlay immediately, including any pending reveal or spring tail. Pausing while reopening below the threshold clears after 120 ms and cannot rearm on further opening. A new closing movement rearms. Closing holds clear after 450 ms, nearly-closed holds after 100 ms.

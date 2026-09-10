@@ -67,17 +67,22 @@ enum ExperienceTest {
         after(9) { check(model.overlayIsVisible,"Another closing fold works") }
         after(9.8) { check(!model.overlayIsVisible && !model.captureIsRunning,"Nearly closed clears promptly") }
         after(10) { model.suspendForSystem(); model.resumeAfterSystem(); model.testSensorAngle=112 }
-        after(11) { model.testSensorAngle=50 }
-        after(11.3) { check(model.overlayIsVisible,"Effect resumes after simulated sleep/wake"); model.testSensorAngle=nil }
-        after(11.5) { check(!model.overlayIsVisible,"Lost sensor fails clear"); model.testSensorAngle=112 }
-        after(12) { model.testSensorAngle=45 }
-        after(12.3) { check(model.overlayIsVisible,"Sensor reconnection rearms on closing"); model.pause() }
-        after(12.6) {
+        // Model a real closing movement after cold recovery. A single angle
+        // jump followed by a 300 ms check races ScreenCaptureKit startup.
+        for frame in 0...60 {
+            let t=Double(frame)/60
+            after(11+t) { model.testSensorAngle=112-62*t }
+            after(13+t) { model.testSensorAngle=112-67*t }
+        }
+        after(12.2) { check(model.overlayIsVisible,"Effect resumes after simulated sleep/wake"); model.testSensorAngle=nil }
+        after(12.4) { check(!model.overlayIsVisible,"Lost sensor fails clear"); model.testSensorAngle=112 }
+        after(14.2) { check(model.overlayIsVisible,"Sensor reconnection rearms on closing"); model.pause() }
+        after(14.5) {
             check(!model.captureIsRunning && !model.overlayIsVisible,"Pause releases every effect surface")
             delegate.showSettings(); phase("Fold · run complete · \(failures == 0 ? "all checks passed" : "failures detected")")
             print("FRAMES received=\(model.receivedFrames) presented=\(model.presentedFrames)")
         }
-        after(14) {
+        after(16) {
             Task { @MainActor in
                 do { try await recorder?.finish() } catch { print("FAIL recording finish: \(error)"); failures += 1 }
                 labelWindow?.close(); model.shutdown(); print("EXPERIENCE: \(failures == 0 ? "passed" : "failed")"); fflush(stdout)
