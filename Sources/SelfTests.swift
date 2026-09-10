@@ -1,0 +1,89 @@
+import AppKit
+import CoreImage
+
+enum SelfTests {
+    static func run() throws {
+        var count=0
+        func check(_ value: Bool,_ label: String) {
+            guard value else { print("FAIL: \(label)");exit(1) }
+            count += 1;print("PASS: \(label)")
+        }
+        check(LidSensor.decode([1,95,0]) == 95,"Sensor reads degrees")
+        check(LidSensor.decode([1,104,1]) == 360,"Little-endian sensor report")
+        check(LidSensor.decode([1,255,255]) == nil && LidSensor.decode([1]) == nil,"Reject invalid sensor data")
+        check(FoldSettings(angle:.nan).progress == 0,"Invalid angle fails clear")
+        check(FoldSettings(angle:130).progress == 0 && FoldSettings(angle:-5).progress == 1,"Angle range clamped")
+        var auth=CaptureAuthorization(),requests=0
+        for _ in 0..<100 { _=auth.startup(preflight:{false},request:{requests += 1;return false}) }
+        check(requests == 1,"Permission requested at most once in a launch after denial")
+        auth=CaptureAuthorization();requests=0
+        _=auth.startup(preflight:{true},request:{requests += 1;return false})
+        check(requests == 0,"No prompt when already authorized")
+        var a=MotionSmoother(),b=MotionSmoother()
+        for _ in 0..<60 { _=a.step(target:1,dt:1.0/60) }
+        for _ in 0..<120 { _=b.step(target:1,dt:1.0/120) }
+        check(abs(a.value-b.value)<0.00001,"Motion consistent at 60 and 120 Hz")
+        check(a.value>0.999 && a.value<=1,"Motion converges without overshoot")
+        var reversal=MotionSmoother();var finite=true
+        for i in 0..<240 {
+            let x=reversal.step(target:i<120 ? 0.8 : 0,dt:1.0/120)
+            finite = finite && x.isFinite && x>=0 && x<=1
+        }
+        check(finite && reversal.value<0.0001,"Rapid reversal stays stable and clears")
+        let gpu=try FoldGPU()
+        let top=CIImage(color:CIColor(red:1,green:0,blue:0)).cropped(to:CGRect(x:0,y:50,width:100,height:50))
+        let bottom=CIImage(color:CIColor(red:0,green:0,blue:1)).cropped(to:CGRect(x:0,y:0,width:100,height:50))
+        let orientation=try gpu.renderOffscreen(top.composited(over:bottom),settings:FoldSettings(angle:100),size:CGSize(width:100,height:100)).0
+        let orientationPixels=NSBitmapImageRep(cgImage:orientation)
+        check((orientationPixels.colorAt(x:50,y:10)?.redComponent ?? 0)>0.9 && (orientationPixels.colorAt(x:50,y:90)?.blueComponent ?? 0)>0.9,"Desktop orientation stays upright")
+        let sample=SampleArtwork.sample()
+        let size=CGSize(width:1280,height:800)
+        let outputIndex=CommandLine.arguments.firstIndex(of:"--render-dir")
+        let folder=outputIndex.map { URL(fileURLWithPath:CommandLine.arguments[$0+1]) }
+        if let folder { try FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true) }
+        var timings=[Double]()
+        for style in 0...2 {
+            for angle in [100.0,75,50,25,5] {
+                let result=try gpu.renderOffscreen(sample,settings:FoldSettings(angle:angle,style:style),size:size)
+                timings.append(result.1)
+                let bitmap=NSBitmapImageRep(cgImage:result.0)
+                let corners=[(0,0),(1279,0),(0,799),(1279,799)]
+                let filled=corners.allSatisfy { x,y in
+                    guard let c=bitmap.colorAt(x:x,y:y)?.usingColorSpace(.sRGB) else { return false }
+                    return c.alphaComponent>0.99 && (c.redComponent+c.greenComponent+c.blueComponent)>0.02
+                }
+                check(filled,"Style \(style), \(Int(angle))° has no black or empty corners")
+                if let folder { try bitmap.representation(using:.png,properties:[:])!.write(to:folder.appendingPathComponent("style-\(style)-angle-\(Int(angle)).png")) }
+            }
+        }
+        // A white field must remain filled at all sampled angles, including every edge pixel.
+        let white=CIImage(color:CIColor(red:1,green:1,blue:1)).cropped(to:CGRect(x:0,y:0,width:1000,height:625))
+        let whiteResult=try gpu.renderOffscreen(white,settings:FoldSettings(angle:1),size:CGSize(width:320,height:200)).0
+        let pixels=NSBitmapImageRep(cgImage:whiteResult)
+        let perimeter=(0..<320).flatMap { [($0,0),($0,199)] }+(0..<200).flatMap { [(0,$0),(319,$0)] }
+        check(perimeter.allSatisfy { x,y in (pixels.colorAt(x:x,y:y)?.redComponent ?? 0)>0.5 },"Every edge pixel filled at nearly closed angle")
+        let reduced=try gpu.renderOffscreen(sample,settings:FoldSettings(angle:50,reducedMotion:true),size:size)
+        check(reduced.0.width==1280,"Reduced Motion renders")
+        let sorted=timings.sorted()
+        print(String(format:"GPU at 1280x800: median %.3f ms, max %.3f ms",sorted[sorted.count/2],sorted.last!))
+        var fullTimings=[Double]()
+        let large=sample.transformed(by:CGAffineTransform(scaleX:2.56,y:2.56))
+        for _ in 0..<35 {
+            let r=try gpu.renderOffscreen(large,settings:FoldSettings(angle:30),size:CGSize(width:2560,height:1600))
+            fullTimings.append(r.1)
+        }
+        fullTimings=Array(fullTimings.dropFirst(5)).sorted()
+        print(String(format:"GPU at 2560x1600 including upload/mipmaps: median %.3f ms, p95 %.3f ms",fullTimings[15],fullTimings[28]))
+        let sensor=LidSensor()
+        if sensor.connect(),let angle=sensor.read() { print("SENSOR: \(angle)°") } else { print("SENSOR: unavailable") }
+        print("\(count) checks passed")
+        if CommandLine.arguments.contains("--render-video"),let folder {
+            for frame in 0..<240 {
+                let t=Double(frame)/60
+                let angle=100-88*(0.5-0.5*cos(t/4*2*Double.pi))
+                let image=try gpu.renderOffscreen(sample,settings:FoldSettings(angle:angle),size:CGSize(width:1280,height:800)).0
+                try NSBitmapImageRep(cgImage:image).representation(using:.png,properties:[:])!.write(to:folder.appendingPathComponent(String(format:"motion-%04d.png",frame)))
+            }
+        }
+    }
+}

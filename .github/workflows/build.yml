@@ -1,0 +1,13 @@
+name: Build macOS app
+on:
+  push:
+  pull_request:
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Apple silicon app
+        run: ./build.sh
+      - name: Verify bundle signature
+        run: codesign --verify --deep --strict "build/$(cat APP_NAME).app"
