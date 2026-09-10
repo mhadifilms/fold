@@ -37,14 +37,14 @@ A MacBook has one rigid display with a bottom hinge. This app adapts the observe
 
 - Keep the entire display filled at every angle.
 - Preserve clarity nearest the bottom hinge; progressively defocus toward the moving top edge.
-- Apply pronounced inverse projection/stretch to the interface without exposing a background outside it.
+- Use inverse rigid-lid projection to preserve apparent image position. This supersedes both the early nonlinear warp and the panel-pinned texture in 1.0.6.
 - Apply directional shade by default; avoid globally darkening the screen.
 - Resolve the image back to an exact unmodified view as the effect clears.
-- Track angles with a critically damped spring that retains velocity on reversals and behaves consistently at 60 and 120 Hz.
+- Follow closing travel with a critically damped spring; remove closing momentum on release. Keep timing consistent at 60 and 120 Hz.
 
 ## Single effect, revised in 1.0.2
 
-The current effect uses a fixed 90° trigger while closing (see the 1.0.5 behavior below). The style alternatives and tuning sliders are removed. Previously saved appearance settings no longer change the effect.
+The historical fixed 90° trigger was superseded by movement-driven entry in 1.0.7 below. The style alternatives and tuning sliders are removed. Previously saved appearance settings no longer change the effect.
 
 Reviewing the consecutive opening frames again showed a continuous focus gradient, without repeated horizontal copies of sharp content. Version 1.0.2 replaces the nine widely spaced fragment samples and box mipmaps with a Gaussian-prefiltered pyramid and one continuous variance-based sample. A single horizontal stripe at 50° produced secondary intensity rises with the previous shader; the new shader has none in the same fixture. The regression allows one 8-bit quantization step.
 
@@ -52,11 +52,11 @@ The projective vertical mapping now has a finite slope at both endpoints, avoidi
 
 ## Rendering
 
-The input is a live ScreenCaptureKit frame, capped at 2560 pixels wide. Core Image uploads each new frame to a reusable Metal texture. A Gaussian pyramid is generated only for new input. A full-screen Metal fragment pass applies spatially varying blur and shade at fixed desktop coordinates, using clamped texture sampling. It never renders a smaller quadrilateral over black.
+The input is a live ScreenCaptureKit frame, capped at 2560 pixels wide. Core Image uploads each new frame to a reusable Metal texture. A Gaussian pyramid is generated only for new input. A full-screen Metal fragment pass compensates physical lid projection, applies a progressive focus field, and darkens the revealed side wedges. The historical versions below describe earlier approaches that were superseded by the candidate.
 
-MTKView presents at the screen's available refresh rate, capped at 120 Hz. A display link handles application state, and sensor reads run independently at 60 Hz. The renderer interpolates between readings. Capture stays alive while automatic folding is armed, drops to 1 fps when fully clear, and returns to the display's requested cadence while folding. Pausing, holding the lid still, or reaching the nearly-closed timeout releases capture completely. The next lid movement rearms it from any position.
+MTKView presents at the screen's available refresh rate, capped at 120 Hz. A display link handles application state, and sensor reads run independently at 60 Hz. The renderer interpolates between readings. Capture stays alive while automatic folding is armed, drops to 1 fps when fully clear, and returns to the display's requested cadence while folding. Pausing, sensor loss, sleep or session changes release capture. Rest and nearly-closed recovery clear the overlay while keeping capture ready at 1 fps. Hidden idle frames are retained without continuously rendering the overlay.
 
-A macOS overlay cannot move other apps' actual hit targets. Pause before clicking displaced controls. This is a visual utility, not a replacement window compositor.
+Desktop coordinates and other apps' hit targets remain fixed. This is a visual utility, not a replacement window compositor.
 
 ## Side shading, 1.0.3
 
@@ -93,3 +93,28 @@ The blur's spatial exponent changes from 1.15 to 1.85. This preserves much more 
 The Gaussian prefilter now uses a wider separable 13-tap kernel, implemented in seven bilinear reads per axis with reusable floating-point intermediate and pyramid textures. This prevents coarse pyramid texels from creating faint bands across a changing focus field. Prefiltering runs only when a new capture arrives; the display pass remains one variance-interpolated texture sample. Rendered regressions check horizontal blur bands every 5° from 95° to 5°, fixed desktop coordinates across the display, high contrast near the hinge and stronger defocus at the outer edge.
 
 This remains one reversible, lid-driven effect. The fixed 90° trigger, immediate threshold clearing, 120 ms reopening-pause reset, closing-hold reset and nearly-closed reset are unchanged. The Duo can maintain useful content while partly folded; a MacBook overlay must instead get out of the user's way when movement stops.
+
+
+## Physical perspective correction, 1.0.7 candidate
+
+The previous interpretation of “stays in place” was wrong: version 1.0.6 pinned texture coordinates to the rotating panel, so the image still moved with the lid. The requested illusion instead keeps the apparent image nearly stationary in the viewer's space while the physical panel moves around it. The user explicitly confirmed this interpretation.
+
+The earlier software warp was also wrong. It used different nonlinear mappings on each axis, expanded the image horizontally and pinned the top edge. The candidate replaces both approaches with one inverse physical projection. With vertical panel coordinate `y`, closing travel `a` in radians and viewing distance `d = 2.7` screen heights:
+
+- Perspective denominator: `1 - y * sin(a) / d`.
+- Source horizontal coordinate: `0.5 + (x - 0.5) / denominator`.
+- Source vertical coordinate: `y * cos(a) / denominator`.
+
+This is the inverse of a rigid lid rotating toward the viewer. After physical projection, image landmarks remain in place and the moving top edge crosses the image. Source coordinates beyond the horizontal image extent produce the dark side wedges; they are no longer independent painted shadows. Edge coverage has a small soft transition. The outer focus coefficient is 40 pixels at a 1600-pixel source width, with spatial exponent 2.65 and progress exponent 0.75. The Gaussian pyramid remains floating point to avoid horizontal bands. Rotation is bounded at 72 degrees for the almost-edge-on case; this and the assumed viewing distance are visual adaptation parameters, not measurements of the viewer's eyes.
+
+### Continuous interaction
+
+The first whole-degree closing step starts from the current posture. Both directions use exactly the same travel curve, `1 - exp(-travel / 40)`. Opening reduces travel immediately and returns to zero when the original closing movement is undone. There is no separate release animation, opening threshold, hysteresis gap or lifetime maximum-angle reference. The proposed first-opening-step dismissal was rejected and removed before this candidate was installed or published.
+
+Recovery remains separate from normal reversal. An opening pause holds for 220 ms, then clears over 180 ms plus short rendering convergence. A closing hold allows 1.25 seconds before the same recovery, preserving the approximately one-second low-lid pause in the reference. The nearly-closed 8-degree/100-ms guard, invalid-sensor clearing and system suspension handling remain. The maximum gesture lifetime is 20 seconds, so it does not interrupt the reference's full close/hold/open cycle. Recovery discards its reference; subsequent opening alone cannot restore an expired fold. These recovery behaviors are usability provisions for this utility, not inferred phone behavior.
+
+Capture stays warm at 1 fps between gestures instead of rebuilding ScreenCaptureKit and Metal after every hold. Idle frames remain in memory without continuously rendering the hidden overlay. Pause, sensor loss and system suspension release capture. The renderer follows sensor samples with a frame-rate-independent critically damped spring; closing momentum cannot continue against an opening target.
+
+### Every-frame inspection
+
+[The frame review](reference-frame-review.md) records inspection of all 469 consecutive frames in the requested X clip, including the low hold and complete reopening. The first-opening-step release proposal was based on an unsupported interpretation and is not part of this candidate. The Settings and public previews now show the actual native shader on a simulated moving lid: a flat screenshot of inverse perspective alone cannot demonstrate the intended apparent stability.

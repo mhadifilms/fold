@@ -1,3 +1,19 @@
+# Fold 1.0.7 candidate verification
+
+Build 15 replaces both the panel-pinned texture and the earlier nonlinear stretch with inverse rigid-lid projection. The apparent image stays in the viewer's space while the physical panel crosses it. Opening uses the same position curve as closing; no first-opening-step dismissal or separate release animation remains. The 90-degree activation threshold is removed.
+
+All 96 graphics and recovery checks passed. Rendered coordinate ramps are compared with the inverse of physical projection, replacing the mistaken panel-coordinate invariant. Horizontal stripe, hinge detail, edge coverage and progressive focus regressions pass. Gesture checks include first-degree onset at five starting postures, proportional partial reversal, full undo without extra travel, a complete nine-second closing/hold/reopening sequence, current-posture rearming and recovery.
+
+The signed installation passed all 26 live assertions using scripted sensor input with real ScreenCaptureKit and onscreen Metal: 387 frames received, 556 presented. It showed a one-degree gesture within 180 ms and cleared its complete one-degree undo within 220 ms. A partial reopening of a deep fold explicitly retained the effect. Opening-pause recovery, short and long closing holds, near closure, simulated wake, sensor loss/wraparound, reconnection, pause, logo and preview assets all passed. A local screen recording contains 955 frames; it is private and is not published.
+
+The Settings window was visually inspected with the bundled physical-lid preview, logo and compact controls. The app was relaunched in normal background mode with automatic folding, login registration, permission and shortcut all ready. A stable 104-degree reading had a clear desktop and a warm capture session; the rendered-frame counter remained unchanged while idle.
+
+The new preview is made from 300 native Metal frames at 60 fps, projected onto a simulated moving lid with original artwork. It is not a camera recording of this MacBook. All 469 consecutive frames of the requested X example were separately inspected; the frame ledger and interpretation limits are documented in [the reference review](reference-frame-review.md). Passing graphics/lifecycle checks does not establish subjective visual acceptance on the physical laptop.
+
+GPU timing at 2560×1600 including upload and prefiltering: 0.999 ms median, 2.609 ms p95. These are GPU measurements, not end-to-end latency guarantees. The installed candidate is Developer ID signed and timestamped with the existing bundle identity. Signature verification passed. No notarization submission was made in this pass.
+
+---
+
 # Fold 1.0.6 verification
 
 Build 13 removes all geometric distortion. The desktop remains at fixed coordinates; the physical lid supplies perspective. Only progressive blur and edge shading change. The blur is clearer near the hinge and stronger toward the outer edge. A wider separable Gaussian with floating-point pyramid textures removes faint coarse-level blur bands.

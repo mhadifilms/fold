@@ -11,7 +11,7 @@ cp Info.plist "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleName $APP_NAME" "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $APP_NAME" "$APP/Contents/Info.plist"
 cp Resources/Logo.png "$APP/Contents/Resources/"
-cp Resources/Fold.metal "$APP/Contents/Resources/"
+cp Resources/Fold.metal Resources/Preview.mp4 Resources/PreviewPoster.png "$APP/Contents/Resources/"
 if [[ -f Resources/AppIcon.icns ]]; then cp Resources/AppIcon.icns "$APP/Contents/Resources/"; fi
 codesign --force --sign "${SIGNING_IDENTITY:--}" "$APP"
 codesign --verify --deep --strict "$APP"
