@@ -1,18 +1,18 @@
 <p align="center"><img src="Resources/Logo.png" width="160" alt="A softly folded glass ribbon on a blue tile"></p>
 
-# macbook-fold
+# Macfold
 
 A native, open-source MacBook utility inspired by the iPhone Duo's folding transition. Your desktop stretches and progressively softens as you lower the lid, staying filled to every edge.
 
-The app's current working title is **Fold**. It runs locally, with no account, analytics, recording files, network calls, or paid dependencies. MIT licensed.
+Macfold runs locally, with no account, analytics, recording files, network calls, or paid dependencies. MIT licensed.
 
-[Download the app](https://github.com/mhadifilms/macbook-fold/releases/latest) · [Motion study](docs/motion-study.md) · [Preview video](docs/motion-preview.mp4)
+[Download the app](https://github.com/mhadifilms/macfold/releases/latest) · [Motion study](docs/motion-study.md) · [Preview video](docs/motion-preview.mp4)
 
 ![The default effect at a partial lid angle](docs/original-preset.png)
 
 ## Use
 
-1. Download and unzip the release, then move **Fold.app** to Applications.
+1. Download and unzip the release, then move **Macfold.app** to Applications.
 2. Open it. At startup, allow Screen Recording if macOS asks. If access was newly granted, reopen the app.
 3. Choose **Follow lid**. The original preset activates below 100° and clears as you open the lid.
 4. Press **Command-Shift-Escape** to pause instantly. The menu bar also has Pause and Quit. Escape pauses while the app is focused.
@@ -56,7 +56,7 @@ With Xcode or Apple's command-line tools installed:
 ./build.sh
 ```
 
-The output is `build/Fold.app`. To sign with your existing certificate:
+The output is `build/Macfold.app`. To sign with your existing certificate:
 
 ```sh
 SIGNING_IDENTITY='Developer ID Application: Your Name (TEAMID)' ./build.sh
@@ -69,7 +69,7 @@ Set `BUILD_DIR` to choose another output folder. `APP_NAME` controls the bundle'
 Run the graphics checks in a logged-in graphical macOS session with a Metal GPU:
 
 ```sh
-build/Fold.app/Contents/MacOS/Fold --self-test
+build/Macfold.app/Contents/MacOS/Macfold --self-test
 ```
 
 The checks exercise sensor decoding, startup permission logic without prompting, motion convergence/reversals, upright image orientation, and complete edge coverage at multiple angles/styles. They benchmark GPU work using generated artwork.
@@ -77,7 +77,7 @@ The checks exercise sensor decoding, startup permission logic without prompting,
 The following opt-in integration test briefly displays the effect for a bounded 12-second check, replaces older running app instances, requires existing screen permission, and saves no screen images:
 
 ```sh
-build/Fold.app/Contents/MacOS/Fold --integration-test
+build/Macfold.app/Contents/MacOS/Macfold --integration-test
 ```
 
 It checks live capture, Metal presentation, clearing and reopening without a stream restart, timed completion, and pause during asynchronous startup. [Verification details](docs/verification.md).

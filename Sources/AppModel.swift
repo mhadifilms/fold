@@ -29,7 +29,7 @@ final class AppModel: ObservableObject {
     var overlayIsVisible: Bool { panel?.isVisible == true }
     var captureIsRunning: Bool { capture != nil || starting }
     private let sensor = LidSensor()
-    private var sensorQueue = DispatchQueue(label: "Fold.sensor", qos: .userInteractive)
+    private var sensorQueue = DispatchQueue(label: "Macfold.sensor", qos: .userInteractive)
     private var sensorTimer: DispatchSourceTimer?
     private var displayLink: CADisplayLink?
     private var authorization = CaptureAuthorization()
@@ -113,7 +113,7 @@ final class AppModel: ObservableObject {
 
     func activate() {
         guard sensorAngle != nil else { message = "No readable lid sensor. You can still use the preview."; return }
-        guard emergencyShortcutAvailable else { message = "The stop shortcut is unavailable. Close any app using Command-Shift-Escape, then reopen Fold."; return }
+        guard emergencyShortcutAvailable else { message = "The stop shortcut is unavailable. Close any app using Command-Shift-Escape, then reopen Macfold."; return }
         guard hasPermission() else { return }
         stopEffect()
         demo = false; enabled = true
@@ -132,7 +132,7 @@ final class AppModel: ObservableObject {
     private func hasPermission() -> Bool {
         if CGPreflightScreenCaptureAccess() { permissionNeeded = false; return true }
         permissionNeeded = true
-        message = "Allow Fold in Screen Recording, then quit and reopen it. The built-in preview works without permission."
+        message = "Allow Macfold in Screen Recording, then quit and reopen it. The built-in preview works without permission."
         return false
     }
     func openPrivacySettings() {
@@ -241,19 +241,19 @@ final class AppModel: ObservableObject {
     }
     private func setupMenu() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem?.button?.image = NSImage(systemSymbolName: "macbook", accessibilityDescription: "Fold")
-        statusItem?.button?.toolTip = "Fold"
+        statusItem?.button?.image = NSImage(systemSymbolName: "macbook", accessibilityDescription: "Macfold")
+        statusItem?.button?.toolTip = "Macfold"
         refreshMenu()
     }
     private func refreshMenu() {
         let menu = NSMenu()
-        let state = NSMenuItem(title: enabled ? "Fold · Following lid" : demo ? "Fold · Previewing" : "Fold · Paused", action: nil, keyEquivalent: "")
+        let state = NSMenuItem(title: enabled ? "Macfold · Following lid" : demo ? "Macfold · Previewing" : "Macfold · Paused", action: nil, keyEquivalent: "")
         menu.addItem(state); menu.addItem(.separator())
         let settings = NSMenuItem(title: "Settings…", action: #selector(settingsAction), keyEquivalent: ","); settings.target = self; menu.addItem(settings)
         let toggle = NSMenuItem(title: enabled || demo ? "Pause effect" : "Follow lid", action: #selector(toggleAction), keyEquivalent: "p"); toggle.target = self; menu.addItem(toggle)
         let preview = NSMenuItem(title: "Preview desktop for 8 seconds", action: #selector(previewAction), keyEquivalent: "d"); preview.target = self; menu.addItem(preview)
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Quit Fold", action: #selector(quitAction), keyEquivalent: "q"); quit.target = self; menu.addItem(quit)
+        let quit = NSMenuItem(title: "Quit Macfold", action: #selector(quitAction), keyEquivalent: "q"); quit.target = self; menu.addItem(quit)
         statusItem?.menu = menu
     }
     @objc private func settingsAction() { showSettings?() }

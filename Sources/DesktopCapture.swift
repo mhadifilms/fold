@@ -5,7 +5,7 @@ import CoreMedia
 final class DesktopCapture: NSObject, SCStreamOutput, SCStreamDelegate {
     private var stream: SCStream?
     private var configuration: SCStreamConfiguration?
-    private let queue = DispatchQueue(label: "Fold.frames", qos: .userInteractive)
+    private let queue = DispatchQueue(label: "Macfold.frames", qos: .userInteractive)
     private let lock = NSLock()
     private var latestFrame: CIImage?
     private var activity: Date?
@@ -20,12 +20,12 @@ final class DesktopCapture: NSObject, SCStreamOutput, SCStreamDelegate {
     func start(displayID: CGDirectDisplayID, framesPerSecond: Int) async throws {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
         guard let display = content.displays.first(where: { $0.displayID == displayID }) else {
-            throw NSError(domain: "Fold", code: 1, userInfo: [NSLocalizedDescriptionKey: "The selected display is no longer available."])
+            throw NSError(domain: "Macfold", code: 1, userInfo: [NSLocalizedDescriptionKey: "The selected display is no longer available."])
         }
-        // Exclude every Fold window explicitly by app, so the overlay never captures itself.
+        // Exclude every Macfold window explicitly by app, so the overlay never captures itself.
         let ownApp = content.applications.filter { $0.processID == ProcessInfo.processInfo.processIdentifier }
         guard !ownApp.isEmpty else {
-            throw NSError(domain: "Fold", code: 2, userInfo: [NSLocalizedDescriptionKey: "Could not exclude the Fold overlay from capture. Reopen Fold and try again."])
+            throw NSError(domain: "Macfold", code: 2, userInfo: [NSLocalizedDescriptionKey: "Could not exclude the Macfold overlay from capture. Reopen Macfold and try again."])
         }
         let filter = SCContentFilter(display: display, excludingApplications: ownApp, exceptingWindows: [])
         let config = SCStreamConfiguration()

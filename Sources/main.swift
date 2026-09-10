@@ -18,10 +18,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let main = NSMenu()
         let app = NSMenuItem(); main.addItem(app)
         let menu = NSMenu(); app.submenu = menu
-        let settings = NSMenuItem(title: "Fold Settings…", action: #selector(openSettings), keyEquivalent: ","); settings.target = self; menu.addItem(settings)
+        let settings = NSMenuItem(title: "Macfold Settings…", action: #selector(openSettings), keyEquivalent: ","); settings.target = self; menu.addItem(settings)
         let pause = NSMenuItem(title: "Pause effect", action: #selector(pauseEffect), keyEquivalent: "p"); pause.target = self; menu.addItem(pause)
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Fold", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(withTitle: "Quit Macfold", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let editItem = NSMenuItem(); main.addItem(editItem)
         let edit = NSMenu(title: "Edit"); editItem.submenu = edit
         edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
@@ -34,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func showSettings() {
         if window == nil {
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 950), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-            w.title = "Fold"
+            w.title = "Macfold"
             w.contentView = NSHostingView(rootView: SettingsView(model: model))
             w.isReleasedWhenClosed = false
             w.delegate = self
