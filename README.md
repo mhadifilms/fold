@@ -41,6 +41,19 @@ The app checks permission on startup and requests it only if missing. Denying it
 
 The build script supports a Developer ID certificate through `SIGNING_IDENTITY`; it does not bundle credentials or create a signing identity. See each release's notes for signing and notarization status.
 
+## Notarize a signed build
+
+Apple notarization requires service authentication in addition to a Developer ID signature. Create an app-specific password in your Apple Account, then store it through Apple's hidden prompt (never put the password in a script or commit):
+
+```sh
+xcrun notarytool store-credentials fold-notary --apple-id YOUR_APPLE_ACCOUNT --team-id YOUR_TEAM_ID
+scripts/notarize.sh /absolute/path/to/Fold.app /absolute/path/to/notary-work
+```
+
+The script verifies the signature, submits the archive, requires an `Accepted` result, staples and validates Apple's ticket, checks Gatekeeper, and repacks the app with its ticket. `NOTARY_PROFILE` selects a different existing Keychain profile. It does not sign the app or create credentials. If Apple's processing exceeds 15 minutes, preserve `submission.json` and resume that submission rather than uploading a duplicate.
+
+See [Apple's notarization workflow](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow).
+
 ## Requirements
 
 - Apple silicon Mac, macOS 14 Sonoma or later.

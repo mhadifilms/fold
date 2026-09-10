@@ -1,3 +1,13 @@
+# Fold 1.0 build 17 — notarization preparation
+
+The app's public version is now **1.0**. The internal build counter advances to 17; this is not a new animation revision. The bundle identifier, approved artwork, compact Settings and build 16 behavior are unchanged.
+
+The fresh build passed all 102 graphics and recovery checks. It is Developer ID signed and timestamped, and strict signature verification passed. The 1.0 bundle is installed at `/Applications/Fold.app` and copied to the deliverables. Previous installations were preserved locally.
+
+Notarization is not complete: neither `fold-notary` nor the earlier `macfold-notary` credential profile exists. The source includes a notarization helper that checks authentication before upload and requires Apple acceptance, ticket stapling and Gatekeeper validation before producing its final archive. The signed submission archive is prepared locally, but no submission or approval is claimed.
+
+---
+
 # Fold 1.0.7 build 16 candidate verification
 
 Physical feedback on build 15 identified excessive vertical stretching. Build 16 retains the horizontal projection, side wedges, focus field and interaction, but uses 60% of the previous height compensation. Maximum hinge expansion drops from 3.24x to 1.71x; at 60 degrees it drops from 2.00x to 1.43x. This is a bounded visual approximation for an uncalibrated viewer, not an exact camera reconstruction.
