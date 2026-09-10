@@ -3,21 +3,21 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>Macfold</string>
+	<string>Fold</string>
 	<key>CFBundleExecutable</key>
-	<string>Macfold</string>
+	<string>Fold</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>io.github.mhadifilms.lidmotion</string>
 	<key>CFBundleName</key>
-	<string>Macfold</string>
+	<string>Fold</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0.1</string>
 	<key>CFBundleVersion</key>
-	<string>5</string>
+	<string>6</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>LSUIElement</key>
@@ -25,6 +25,6 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSScreenCaptureUsageDescription</key>
-	<string>Macfold uses the desktop image to draw a local fold effect. Frames are never recorded, saved, or uploaded.</string>
+	<string>Fold uses the desktop image to draw a local fold effect. Frames are never recorded, saved, or uploaded.</string>
 </dict>
 </plist>

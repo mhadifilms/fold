@@ -15,7 +15,7 @@ enum ExperienceTest {
         guard let screen = NSScreen.screens.first(where: { CGDisplayIsBuiltin($0.displayID) != 0 }) ?? NSScreen.main else { exit(2) }
         let banner = NSWindow(contentRect: NSRect(x:screen.frame.minX+24,y:screen.frame.maxY-96,width:740,height:56),styleMask:[.borderless],backing:.buffered,defer:false)
         banner.level = .screenSaver; banner.isReleasedWhenClosed = false; banner.backgroundColor = NSColor.black.withAlphaComponent(0.82); banner.ignoresMouseEvents = true
-        let text = NSTextField(labelWithString:"Macfold · live desktop run · scripted lid input")
+        let text = NSTextField(labelWithString:"Fold · live desktop run · scripted lid input")
         text.textColor = .white; text.font = .systemFont(ofSize:20,weight:.medium); text.frame = NSRect(x:18,y:17,width:704,height:26)
         banner.contentView?.addSubview(text); banner.orderFrontRegardless(); labelWindow = banner; status = text
         func phase(_ value: String) { text.stringValue = value; print(value); fflush(stdout) }
@@ -66,7 +66,7 @@ enum ExperienceTest {
         after(17.5) { check(model.overlayIsVisible,"Sensor reconnection rearms automatically"); model.pause(); phase("Pause · desktop clear") }
         after(18) {
             check(!model.captureIsRunning && !model.overlayIsVisible,"Pause releases every effect surface")
-            delegate.showSettings(); phase("Macfold · run complete · \(failures == 0 ? "all checks passed" : "failures detected")")
+            delegate.showSettings(); phase("Fold · run complete · \(failures == 0 ? "all checks passed" : "failures detected")")
             print("FRAMES received=\(model.receivedFrames) presented=\(model.presentedFrames)")
         }
         after(20) {
@@ -88,7 +88,7 @@ final class ProofRecorder: NSObject, SCStreamOutput {
     private var adaptor: AVAssetWriterInputPixelBufferAdaptor?
     private let context = CIContext()
     private var frameCount = 0
-    private let queue = DispatchQueue(label:"Macfold.proof-recorder")
+    private let queue = DispatchQueue(label:"Fold.proof-recorder")
     func start(url:URL,displayID:CGDirectDisplayID) async throws {
         let content = try await SCShareableContent.excludingDesktopWindows(false,onScreenWindowsOnly:true)
         guard let display = content.displays.first(where:{ $0.displayID == displayID }) else { throw NSError(domain:"ProofRecorder",code:1) }

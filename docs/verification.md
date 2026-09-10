@@ -1,6 +1,16 @@
+# Fold 1.0.1 verification
+
+Build 6 renames the app, cover and repository to Fold while retaining the existing bundle identifier and Developer ID identity. The installed app is `/Applications/Fold.app`; its login registration was refreshed to the new path.
+
+A normal macOS LaunchServices launch confirmed screen access granted, automatic folding enabled, the emergency shortcut available and native login registration enabled. The installed app then passed all 15 visible lifecycle assertions using actual ScreenCaptureKit frames and onscreen Metal presentation, with scripted lid input: 406 frames received, 424 presented. Logo loading, hidden Dock after Settings closes, held-lid reset, nearly-closed reset, wake/sensor recovery and pause cleanup passed. No desktop recording was made. After the test the app was relaunched normally in background mode.
+
+All 41 graphics and recovery checks passed. GPU timing at 2560×1600 including upload and mip generation: 1.429 ms median, 2.504 ms p95 on this Mac. These are GPU timings, not end-to-end latency guarantees. This build is Developer ID signed and timestamped. Notarization is awaiting Apple service authentication; it is not yet notarized.
+
+---
+
 # Recovery correction
 
-The installed LaunchServices process was alive, but its Screen Recording permission was missing. Earlier developer-launched runs had passed; those did not prove that the standalone installed app had its own permission. The current installation is being verified through a normal macOS launch.
+An earlier installed LaunchServices process was alive but lacked Screen Recording permission. Developer-launched runs did not establish standalone permission. This gap was resolved and verified in the Fold build 6 installation below.
 
 Removed the requirement to open above 103 degrees. Startup, stationary reset, nearly-closed recovery and wake now resume on meaningful movement from any position, in either direction. Tiny sensor jitter is ignored. The stationary and maximum-duration protections remain.
 
@@ -8,7 +18,7 @@ Removed the requirement to open above 103 degrees. Startup, stationary reset, ne
 
 ---
 
-# Macfold 1.0 verification
+# Fold 1.0 verification
 
 The first stable release is numbered 1.0.0; the earlier 2.x labels were development iterations. Build 4 changes release metadata only and retains the verified implementation below.
 

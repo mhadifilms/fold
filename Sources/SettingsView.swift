@@ -18,7 +18,7 @@ struct SettingsView: View {
                     HStack(alignment: .top) {
                         Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 48, height: 48).accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Macfold").font(.system(size: 27, weight: .semibold, design: .rounded))
+                            Text("Fold").font(.system(size: 27, weight: .semibold, design: .rounded))
                             Text("Close the lid. Let the desktop follow.").foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -42,7 +42,7 @@ struct SettingsView: View {
                             Toggle("Automatic folding", isOn: Binding(get: { model.automatic }, set: { model.setAutomatic($0) }))
                             Toggle("Start at login", isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
                             Toggle("Show menu bar icon", isOn: $model.showMenuBar)
-                            Text("Close this window and Macfold keeps working. Open Macfold from Applications whenever you want to change settings.").font(.caption).foregroundStyle(.secondary)
+                            Text("Close this window and Fold keeps working. Open Fold from Applications whenever you want to change settings.").font(.caption).foregroundStyle(.secondary)
                             if !model.loginMessage.isEmpty { Text(model.loginMessage).font(.caption).foregroundStyle(.orange) }
                         }.frame(maxWidth: .infinity, alignment: .leading).padding(10)
                     }

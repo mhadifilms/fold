@@ -1,20 +1,20 @@
-![Macfold 1.0 — Close the lid. Let the desktop follow.](docs/cover.png)
+![Fold 1.0 — Close the lid. Let the desktop follow.](docs/cover.png)
 
-# Macfold
+# Fold
 
 A native, open-source MacBook utility inspired by the iPhone Duo's folding transition. Your desktop stretches and progressively softens as you lower the lid, staying filled to every edge.
 
-Macfold runs locally, with no account, analytics, recording files, network calls, or paid dependencies. MIT licensed.
+Fold runs locally, with no account, analytics, recording files, network calls, or paid dependencies. MIT licensed.
 
-[Download the app](https://github.com/mhadifilms/macfold/releases/latest) · [Motion study](docs/motion-study.md) · [Preview video](docs/motion-preview.mp4)
+[Download the app](https://github.com/mhadifilms/fold/releases/latest) · [Motion study](docs/motion-study.md) · [Preview video](docs/motion-preview.mp4)
 
 
 ## Use
 
-1. Download and unzip the release, then move **Macfold.app** to Applications.
+1. Download and unzip the release, then move **Fold.app** to Applications.
 2. Open it once and allow Screen Recording if macOS asks. Reopen after a new grant if needed.
-3. Close Settings. Macfold follows the lid automatically and starts at login. There is no menu bar icon by default.
-4. Open Macfold from Applications to change settings. **Command-Shift-Escape** pauses immediately.
+3. Close Settings. Fold follows the lid automatically and starts at login. There is no menu bar icon by default.
+4. Open Fold from Applications to change settings. **Command-Shift-Escape** pauses immediately.
 
 The settings **Automatic folding** switch persists across launches. **Start at login** uses Apple's ServiceManagement registration; macOS may require approval in Login Items. The Dock icon is visible only while Settings is open. A menu bar control is optional.
 
@@ -57,7 +57,7 @@ With Xcode or Apple's command-line tools installed:
 ./build.sh
 ```
 
-The output is `build/Macfold.app`. To sign with your existing certificate:
+The output is `build/Fold.app`. To sign with your existing certificate:
 
 ```sh
 SIGNING_IDENTITY='Developer ID Application: Your Name (TEAMID)' ./build.sh
@@ -70,7 +70,7 @@ Set `BUILD_DIR` to choose another output folder. `APP_NAME` controls the bundle'
 Run the graphics checks in a logged-in graphical macOS session with a Metal GPU:
 
 ```sh
-build/Macfold.app/Contents/MacOS/Macfold --self-test
+build/Fold.app/Contents/MacOS/Fold --self-test
 ```
 
 The checks exercise sensor decoding, startup permission logic without prompting, motion convergence/reversals, upright image orientation, and complete edge coverage at multiple angles/styles. They benchmark GPU work using generated artwork.
@@ -78,7 +78,7 @@ The checks exercise sensor decoding, startup permission logic without prompting,
 The following opt-in integration test briefly displays the effect for a bounded 12-second check, replaces older running app instances, requires existing screen permission, and saves no screen images:
 
 ```sh
-build/Macfold.app/Contents/MacOS/Macfold --integration-test
+build/Fold.app/Contents/MacOS/Fold --integration-test
 ```
 
 It checks live capture, Metal presentation, clearing and reopening without a stream restart, timed completion, and pause during asynchronous startup. [Verification details](docs/verification.md).
@@ -86,7 +86,7 @@ It checks live capture, Metal presentation, clearing and reopening without a str
 An additional visible lifecycle test closes Settings, folds, holds, moves again, checks the nearly-closed timeout, and exercises recovery. It scripts the sensor input while using the actual live capture and onscreen renderer:
 
 ```sh
-build/Macfold.app/Contents/MacOS/Macfold --experience-test
+build/Fold.app/Contents/MacOS/Fold --experience-test
 ```
 
 Adding `--proof-video /absolute/path/run.mov` explicitly records the display for review; do this only with content you want recorded. This diagnostic is never enabled in normal operation. `--observe-lid` prints angle and lifecycle counters for three minutes without recording pixels or altering the sensor.
