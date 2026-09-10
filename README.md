@@ -13,24 +13,26 @@ Macfold runs locally, with no account, analytics, recording files, network calls
 ## Use
 
 1. Download and unzip the release, then move **Macfold.app** to Applications.
-2. Open it. At startup, allow Screen Recording if macOS asks. If access was newly granted, reopen the app.
-3. Choose **Follow lid**. The original preset activates below 100° and clears as you open the lid.
-4. Press **Command-Shift-Escape** to pause instantly. The menu bar also has Pause and Quit. Escape pauses while the app is focused.
+2. Open it once and allow Screen Recording if macOS asks. Reopen after a new grant if needed.
+3. Close Settings. Macfold follows the lid automatically and starts at login. There is no menu bar icon by default.
+4. Open Macfold from Applications to change settings. **Command-Shift-Escape** pauses immediately.
 
-The generated Settings preview needs no permission. Drag its angle slider to explore the effect. **Preview desktop · 8 sec** tries the real effect and clears automatically. **Restore original** restores the reference-inspired default.
+The settings **Automatic folding** switch persists across launches. **Start at login** uses Apple's ServiceManagement registration; macOS may require approval in Login Items. The Dock icon is visible only while Settings is open. A menu bar control is optional.
 
-The overlay changes pixels, not other apps' click targets. Pause before clicking displaced controls.
+Holding the lid still for 2.5 seconds clears the effect and releases capture. At 8° or below, the timeout is 350 ms. A continuous transition is bounded to eight seconds. Reopen above the clear angle plus 3° for 200 ms to rearm. Starting the app with the lid already partly closed keeps the desktop clear until reopening. Sensor loss, sleep, and session changes immediately clear the effect; reopening after recovery rearms it.
 
-## What changed in this version
+The generated preview needs no screen permission. **Preview desktop · 8 sec** is a bounded manual demonstration. **Restore original** restores the stronger reference-inspired default: stretch 72%, blur 85%, shade 28%, clear above 100°.
 
-- Full-screen texture sampling removes the previous black gutters.
-- Blur increases toward the moving top edge; the bottom hinge stays clearer.
-- Gentle stretch and subtle directional shade replace the shrinking trapezoid and heavy global darkening.
-- Critically damped smoothing interpolates between sensor readings and preserves velocity when you reverse direction.
-- Display-synchronized rendering requests up to 120 Hz on supported displays; actual cadence follows the display and macOS.
-- Capture is kept ready across folds and idles at 1 fps while the desktop is clear. Pausing releases it.
-- A single startup permission path asks only when permission is missing. Follow lid, Preview, and repeated folds never request authorization.
-- New launches ask older copies of this app to quit, preventing competing overlays/hotkeys.
+## What changed in 2.1
+
+- Automatic operation after setup, optional menu bar icon, persisted settings, native launch-at-login registration.
+- The generated logo is included as both the Finder app icon and an explicitly loaded runtime icon, including Settings and Dock.
+- Held-lid, nearly-closed, stale-sensor, sleep/wake and maximum-duration recovery.
+- A fresh-frame handoff and 120 ms entrance blend remove the abrupt switch into the overlay. Closing motion warms capture before the fold begins.
+- A stronger blur field and stretch curve, tuned after inspecting 150 consecutive reference frames. Pixels fill every edge.
+- A visible end-to-end test for the actual capture and presentation pipeline, with an optional screen recording for local review.
+
+Rendering follows the display up to 120 Hz. Capture stays ready at 1 fps when armed and clear, and releases completely after a safety reset or pause. The overlay changes pixels; other apps' click targets remain in their original positions.
 
 ## Permissions and signing
 
@@ -81,6 +83,14 @@ build/Macfold.app/Contents/MacOS/Macfold --integration-test
 ```
 
 It checks live capture, Metal presentation, clearing and reopening without a stream restart, timed completion, and pause during asynchronous startup. [Verification details](docs/verification.md).
+
+An additional visible lifecycle test closes Settings, folds, holds, reopens, checks the nearly-closed timeout, and exercises recovery. It scripts the sensor input while using the actual live capture and onscreen renderer:
+
+```sh
+build/Macfold.app/Contents/MacOS/Macfold --experience-test
+```
+
+Adding `--proof-video /absolute/path/run.mov` explicitly records the display for review; do this only with content you want recorded. This diagnostic is never enabled in normal operation. `--observe-lid` prints angle and lifecycle counters for three minutes without recording pixels or altering the sensor.
 
 ## Source layout
 

@@ -35,7 +35,7 @@ final class DesktopCapture: NSObject, SCStreamOutput, SCStreamDelegate {
         config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(framesPerSecond))
         config.queueDepth = 3
         config.pixelFormat = kCVPixelFormatType_32BGRA
-        config.showsCursor = true
+        config.showsCursor = false
         config.capturesAudio = false
         self.configuration = config
         let stream = SCStream(filter: filter, configuration: config, delegate: self)

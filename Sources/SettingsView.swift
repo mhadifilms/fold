@@ -18,8 +18,8 @@ struct SettingsView: View {
                     HStack(alignment: .top) {
                         Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 48, height: 48).accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Go with the fold.").font(.system(size: 27, weight: .semibold, design: .rounded))
-                            Text("Your desktop, following the fold.").foregroundStyle(.secondary)
+                            Text("Macfold").font(.system(size: 27, weight: .semibold, design: .rounded))
+                            Text("Close the lid. Let the desktop follow.").foregroundStyle(.secondary)
                         }
                         Spacer()
                         Text("Open source").font(.caption).foregroundStyle(.secondary).padding(.top, 10)
@@ -37,6 +37,15 @@ struct SettingsView: View {
                             Text("\(Int(model.settings.angle))°").monospacedDigit().frame(width: 44, alignment: .trailing)
                         }
                     }.frame(maxWidth: .infinity)
+                    GroupBox("Works on its own") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Toggle("Automatic folding", isOn: Binding(get: { model.automatic }, set: { model.setAutomatic($0) }))
+                            Toggle("Start at login", isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
+                            Toggle("Show menu bar icon", isOn: $model.showMenuBar)
+                            Text("Close this window and Macfold keeps working. Open Macfold from Applications whenever you want to change settings.").font(.caption).foregroundStyle(.secondary)
+                            if !model.loginMessage.isEmpty { Text(model.loginMessage).font(.caption).foregroundStyle(.orange) }
+                        }.frame(maxWidth: .infinity, alignment: .leading).padding(10)
+                    }
                     GroupBox("Appearance") {
                         VStack(spacing: 13) {
                             Picker("Style", selection: $model.style) {
@@ -65,13 +74,13 @@ struct SettingsView: View {
                             Text("Not available on this Mac").foregroundStyle(.secondary)
                         }
                     }
-                    Text("Automatic folding uses the built-in display. The timed preview uses your main display.").font(.caption).foregroundStyle(.secondary)
+                    Text("Holding the lid still clears the effect after 2.5 seconds. Reopening rearms it automatically.").font(.caption).foregroundStyle(.secondary)
                 }.padding(24)
             }
             Divider()
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Button(model.enabled || model.demo ? "Pause effect" : "Follow lid", systemImage: model.enabled || model.demo ? "pause.fill" : "play.fill") {
+                    Button(model.enabled || model.demo ? "Pause for now" : "Resume folding", systemImage: model.enabled || model.demo ? "pause.fill" : "play.fill") {
                         if model.enabled || model.demo { model.pause() } else { model.activate() }
                     }.buttonStyle(.borderedProminent).controlSize(.large)
                         .disabled(!(model.enabled || model.demo) && (model.sensorAngle == nil || !model.emergencyShortcutAvailable))
@@ -91,7 +100,7 @@ struct SettingsView: View {
                     Spacer()
                     Text("⌘⇧Esc to stop").font(.caption).foregroundStyle(.secondary)
                 }
-                Text("Pause before clicking displaced windows; click targets stay in their original positions.").font(.caption).foregroundStyle(.secondary)
+                Text("The effect clears automatically if the lid is held still or nearly closed.").font(.caption).foregroundStyle(.secondary)
             }.padding(20)
         }.frame(minWidth: 540, idealWidth: 620, maxWidth: .infinity, minHeight: 600, idealHeight: 940)
             .background(Color(nsColor: .windowBackgroundColor))

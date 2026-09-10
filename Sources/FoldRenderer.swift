@@ -2,12 +2,12 @@ import AppKit
 import CoreImage
 import MetalKit
 
-struct FoldSettings {
+struct FoldSettings: Equatable {
     var angle: Double = 58
     var clearAngle: Double = 100
-    var perspective: Double = 0.55
-    var blur: Double = 0.72
-    var shadow: Double = 0.18
+    var perspective: Double = 0.72
+    var blur: Double = 0.85
+    var shadow: Double = 0.28
     var style: Int = 0
     var reducedMotion = false
     var progress: Double {
@@ -116,8 +116,11 @@ final class FoldMetalView: MTKView, MTKViewDelegate {
     private var lastTime: CFTimeInterval?
     private var inflight=DispatchSemaphore(value:3)
     var source: CIImage? { didSet { pendingSource=source; isPaused=false } }
-    var settings=FoldSettings() { didSet { isPaused=false } }
+    var settings=FoldSettings() { didSet { if settings != oldValue { isPaused=false } } }
     var onPresented: (() -> Void)?
+    func resetMotion() {
+        smoother = MotionSmoother(); lastTime = nil; isPaused = false
+    }
     var initializationError: String?
     var settled: Bool { abs(smoother.value-settings.progress)<0.0001 && abs(smoother.velocity)<0.002 }
     init() {

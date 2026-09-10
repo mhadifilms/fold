@@ -4,7 +4,13 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let model = AppModel()
     var window: NSWindow?
+    private var launchedAtLogin = false
+    private var observationTimer: Timer?
     func applicationDidFinishLaunching(_ notification: Notification) {
+        launchedAtLogin = LoginService.launchedAtLogin || CommandLine.arguments.contains("--background")
+        if let url = Bundle.main.url(forResource: "Logo", withExtension: "png"), let icon = NSImage(contentsOf: url) {
+            NSApp.applicationIconImage = icon
+        }
         // An update must not leave competing overlays or hotkeys behind.
         let previous = NSWorkspace.shared.runningApplications.filter {
             ($0.bundleIdentifier == Bundle.main.bundleIdentifier || $0.bundleIdentifier == "app.freefold.local") && $0.processIdentifier != ProcessInfo.processInfo.processIdentifier
@@ -14,7 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     private func finishLaunching() {
         model.showSettings = { [weak self] in self?.showSettings() }
-        model.setup(requestScreenPermission: !CommandLine.arguments.contains("--integration-test"))
+        model.setup(requestScreenPermission: !model.diagnostic)
         let main = NSMenu()
         let app = NSMenuItem(); main.addItem(app)
         let menu = NSMenu(); app.submenu = menu
@@ -28,8 +34,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
         edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         NSApp.mainMenu = main
-        showSettings()
+        if !model.diagnostic && !UserDefaults.standard.bool(forKey: "loginSetupCompleted") {
+            model.setLaunchAtLogin(true)
+            UserDefaults.standard.set(true, forKey: "loginSetupCompleted")
+        }
+        if !launchedAtLogin { showSettings() }
+        if CommandLine.arguments.contains("--observe-lid") {
+            let started = CACurrentMediaTime()
+            observationTimer = Timer.scheduledTimer(withTimeInterval:0.25,repeats:true) { [weak self] timer in
+                guard let self else { timer.invalidate(); return }
+                let m = self.model
+                print("OBS t=\(String(format:"%.2f",CACurrentMediaTime()-started)) angle=\(m.sensorAngle ?? -1) automatic=\(m.automatic) enabled=\(m.enabled) overlay=\(m.overlayIsVisible) waiting=\(m.waitingForOpen) capture=\(m.captureIsRunning) login=\(LoginService.enabled) frames=\(m.presentedFrames)")
+                fflush(stdout)
+                if CACurrentMediaTime()-started > 180 { timer.invalidate() }
+            }
+        }
         if CommandLine.arguments.contains("--integration-test") { IntegrationTest.start(model) }
+        if CommandLine.arguments.contains("--experience-test") { ExperienceTest.start(model, delegate: self) }
     }
     func showSettings() {
         if window == nil {
@@ -46,9 +67,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
             w.center(); window = w
         }
+        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
     }
+    func windowWillClose(_ notification: Notification) { NSApp.setActivationPolicy(.accessory) }
     @objc func openSettings() { showSettings() }
     @objc func pauseEffect() { model.pause() }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showSettings(); return true }
