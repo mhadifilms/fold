@@ -42,13 +42,17 @@ A MacBook has one rigid display with a bottom hinge. This app adapts the observe
 - Resolve the image back to an exact unmodified view as the effect clears.
 - Track angles with a critically damped spring that retains velocity on reversals and behaves consistently at 60 and 120 Hz.
 
-## Original preset
+## Single effect, revised in 1.0.2
 
-Effect begins below 100°. Stretch 72%, blur 85%, shade 28%. These are hand-tuned approximation values, not extracted Apple parameters. The user can restore this preset with one button.
+Effect begins below 100°. The style alternatives and tuning sliders are removed. Previously saved appearance settings no longer change the effect.
+
+Reviewing the consecutive opening frames again showed a continuous focus gradient, without repeated horizontal copies of sharp content. Version 1.0.2 replaces the nine widely spaced fragment samples and box mipmaps with a Gaussian-prefiltered pyramid and one continuous variance-based sample. A single horizontal stripe at 50° produced secondary intensity rises with the previous shader; the new shader has none in the same fixture. The regression allows one 8-bit quantization step.
+
+The projective vertical mapping now has a finite slope at both endpoints, avoiding the old power curve's compression of rows nearest the hinge. Blur remains pronounced toward the outer edge, with more clarity near the hinge and lighter shading. These remain hand-tuned approximations, not Apple's extracted shader parameters.
 
 ## Rendering
 
-The input is a live ScreenCaptureKit frame, capped at 2560 pixels wide. Core Image uploads each new frame to a reusable Metal texture. A mip pyramid is generated only for new input. A full-screen Metal fragment pass applies inverse projection, spatially varying blur and shade, using clamped texture sampling. It never renders a smaller quadrilateral over black.
+The input is a live ScreenCaptureKit frame, capped at 2560 pixels wide. Core Image uploads each new frame to a reusable Metal texture. A Gaussian pyramid is generated only for new input. A full-screen Metal fragment pass applies inverse projection, spatially varying blur and shade, using clamped texture sampling. It never renders a smaller quadrilateral over black.
 
 MTKView presents at the screen's available refresh rate, capped at 120 Hz. A display link handles application state, and sensor reads run independently at 60 Hz. The renderer interpolates between readings. Capture stays alive while automatic folding is armed, drops to 1 fps when fully clear, and returns to the display's requested cadence while folding. Pausing, holding the lid still, or reaching the nearly-closed timeout releases capture completely. The next lid movement rearms it from any position.
 

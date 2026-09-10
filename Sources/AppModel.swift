@@ -9,12 +9,7 @@ final class OverlayPanel: NSPanel {
 
 final class AppModel: ObservableObject {
     @Published var angle: Double = 58 { didSet { updateAppearance() } }
-    @Published var clearAngle: Double = UserDefaults.standard.object(forKey: "clearAngle") as? Double ?? 100 { didSet { save(); updateAppearance() } }
-    @Published var perspective: Double = UserDefaults.standard.object(forKey: "perspective") as? Double ?? 0.72 { didSet { save(); updateAppearance() } }
-    @Published var blur: Double = UserDefaults.standard.object(forKey: "blur") as? Double ?? 0.85 { didSet { save(); updateAppearance() } }
-    @Published var shadow: Double = UserDefaults.standard.object(forKey: "shadow") as? Double ?? 0.28 { didSet { save(); updateAppearance() } }
-    @Published var style: Int = UserDefaults.standard.integer(forKey: "style") { didSet { save(); updateAppearance() } }
-    @Published var sound: Bool = UserDefaults.standard.bool(forKey: "sound") { didSet { save() } }
+    let clearAngle: Double = 100
     let diagnostic = CommandLine.arguments.contains("--integration-test") || CommandLine.arguments.contains("--experience-test")
     @Published var automatic = UserDefaults.standard.object(forKey: "automatic") as? Bool ?? true
     @Published var showMenuBar = UserDefaults.standard.bool(forKey: "showMenuBar") { didSet {
@@ -70,14 +65,10 @@ final class AppModel: ObservableObject {
     private var statusItem: NSStatusItem?
 
     var settings: FoldSettings {
-        FoldSettings(angle: enabled ? (effectAllowed ? (sensorAngle ?? clearAngle) : clearAngle) : angle, clearAngle: clearAngle,
-                     perspective: perspective, blur: blur, shadow: shadow, style: style, reducedMotion: reducedMotion)
+        FoldSettings(angle: enabled ? (effectAllowed ? (sensorAngle ?? clearAngle) : clearAngle) : angle, reducedMotion: reducedMotion)
     }
 
     func setup(requestScreenPermission: Bool = true) {
-        if !diagnostic && !UserDefaults.standard.bool(forKey: "duoDefaultsV3") {
-            resetAppearance(); UserDefaults.standard.set(true, forKey: "duoDefaultsV3")
-        }
         setupMenu(); setupHotKey()
         permissionNeeded = !authorization.startup(preflight: { CGPreflightScreenCaptureAccess() }, request: { requestScreenPermission ? CGRequestScreenCaptureAccess() : false })
         if permissionNeeded { message = "Allow screen access in System Settings, then reopen the app. Preview below needs no permission." }
@@ -232,7 +223,6 @@ final class AppModel: ObservableObject {
         requestedCaptureRate = effectVisible || demo || CACurrentMediaTime() < warmCaptureUntil ? captureFPS : 1
         if !effectVisible, metal?.settled == true, panel?.isVisible == true {
             panel?.orderOut(nil); panel?.alphaValue = 0; revealAfter = nil
-            if sound && enabled { NSSound(named: "Tink")?.play() }
         }
         adjustCaptureRate()
         if let frame = capture?.takeFrame() {
@@ -347,16 +337,6 @@ final class AppModel: ObservableObject {
         if let old { Task { await old.stop() } }
     }
     private func updateAppearance() { metal?.settings = settings }
-    private func save() {
-        guard !diagnostic else { return }
-        let d = UserDefaults.standard
-        d.set(clearAngle, forKey: "clearAngle"); d.set(perspective, forKey: "perspective")
-        d.set(blur, forKey: "blur"); d.set(shadow, forKey: "shadow")
-        d.set(style, forKey: "style"); d.set(sound, forKey: "sound")
-    }
-    func resetAppearance() {
-        clearAngle = 100; perspective = 0.72; blur = 0.85; shadow = 0.28; style = 0; angle = 58; sound = false
-    }
     var menuBarIsVisible: Bool { statusItem != nil }
     private func setupMenu() {
         if let statusItem { NSStatusBar.system.removeStatusItem(statusItem); self.statusItem = nil }
@@ -372,14 +352,12 @@ final class AppModel: ObservableObject {
         menu.addItem(state); menu.addItem(.separator())
         let settings = NSMenuItem(title: "Settings…", action: #selector(settingsAction), keyEquivalent: ","); settings.target = self; menu.addItem(settings)
         let toggle = NSMenuItem(title: enabled || demo ? "Pause effect" : "Follow lid", action: #selector(toggleAction), keyEquivalent: "p"); toggle.target = self; menu.addItem(toggle)
-        let preview = NSMenuItem(title: "Preview desktop for 8 seconds", action: #selector(previewAction), keyEquivalent: "d"); preview.target = self; menu.addItem(preview)
         menu.addItem(.separator())
         let quit = NSMenuItem(title: "Quit Fold", action: #selector(quitAction), keyEquivalent: "q"); quit.target = self; menu.addItem(quit)
         statusItem?.menu = menu
     }
     @objc private func settingsAction() { showSettings?() }
     @objc private func toggleAction() { if enabled || demo { pause() } else { activate() } }
-    @objc private func previewAction() { previewDesktop() }
     @objc private func quitAction() { pause(); NSApp.terminate(nil) }
     private func setupHotKey() {
         var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))

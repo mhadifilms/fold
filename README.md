@@ -20,7 +20,7 @@ The settings **Automatic folding** switch persists across launches. **Start at l
 
 Holding the lid still for 2.5 seconds clears the effect and releases capture. At 8° or below, the timeout is 350 ms. A continuous transition is bounded to eight seconds. The next lid movement resumes the effect from any position. You do not need to open past a particular angle. Starting while partly closed waits only for movement. Sensor loss, sleep, and session changes immediately clear the effect; movement after recovery resumes it.
 
-The generated preview needs no screen permission. **Preview desktop · 8 sec** is a bounded manual demonstration. **Restore original** restores the stronger reference-inspired default: stretch 72%, blur 85%, shade 28%, clear above 100°.
+There is one reference-inspired effect. **Preview** plays it inside Settings using original sample artwork and needs no screen permission. The three settings control automatic folding, launch at login and the optional menu bar icon.
 
 ## Included in 1.0
 
@@ -28,7 +28,7 @@ The generated preview needs no screen permission. **Preview desktop · 8 sec** i
 - The generated logo is included as both the Finder app icon and an explicitly loaded runtime icon, including Settings and Dock.
 - Held-lid, nearly-closed, stale-sensor, sleep/wake and maximum-duration recovery.
 - A fresh-frame handoff and 120 ms entrance blend remove the abrupt switch into the overlay. Closing motion warms capture before the fold begins.
-- A stronger blur field and stretch curve, tuned after inspecting 150 consecutive reference frames. Pixels fill every edge.
+- A continuous focus gradient and smooth projective stretch, informed by consecutive Duo reference frames. A Gaussian pyramid avoids repeated horizontal blur bands, and pixels fill every edge.
 - A visible end-to-end test for the actual capture and presentation pipeline, with an optional screen recording for local review.
 
 Rendering follows the display up to 120 Hz. Capture stays ready at 1 fps when armed and clear, and releases completely after a safety reset or pause. The overlay changes pixels; other apps' click targets remain in their original positions.
@@ -73,7 +73,7 @@ Run the graphics checks in a logged-in graphical macOS session with a Metal GPU:
 build/Fold.app/Contents/MacOS/Fold --self-test
 ```
 
-The checks exercise sensor decoding, startup permission logic without prompting, motion convergence/reversals, upright image orientation, and complete edge coverage at multiple angles/styles. They benchmark GPU work using generated artwork.
+The checks exercise sensor decoding, startup permission logic without prompting, motion convergence/reversals, upright image orientation, and complete edge coverage at multiple angles, plus a regression for horizontal blur bands. They benchmark GPU work using generated artwork.
 
 The following opt-in integration test briefly displays the effect for a bounded 12-second check, replaces older running app instances, requires existing screen permission, and saves no screen images:
 

@@ -59,17 +59,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     func showSettings() {
         if window == nil {
-            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 950), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 730), styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
             w.title = "Fold"
             w.contentView = NSHostingView(rootView: SettingsView(model: model))
             w.isReleasedWhenClosed = false
             w.delegate = self
-            w.setFrameAutosaveName("FoldSettings")
-            if let screen = NSScreen.main {
-                let available = screen.visibleFrame
-                let height = min(950, available.height - 70)
-                w.setContentSize(NSSize(width: 620, height: height))
-            }
+            w.setFrameAutosaveName("FoldSettingsCompact")
+            w.setContentSize(NSSize(width: 480, height: 730))
             w.center(); window = w
         }
         NSApp.setActivationPolicy(.regular)

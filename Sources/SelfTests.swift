@@ -62,19 +62,32 @@ enum SelfTests {
         let folder=outputIndex.map { URL(fileURLWithPath:CommandLine.arguments[$0+1]) }
         if let folder { try FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true) }
         var timings=[Double]()
-        for style in 0...2 {
-            for angle in [100.0,75,50,25,5] {
-                let result=try gpu.renderOffscreen(sample,settings:FoldSettings(angle:angle,style:style),size:size)
-                timings.append(result.1)
-                let bitmap=NSBitmapImageRep(cgImage:result.0)
-                let corners=[(0,0),(1279,0),(0,799),(1279,799)]
-                let filled=corners.allSatisfy { x,y in
-                    guard let c=bitmap.colorAt(x:x,y:y)?.usingColorSpace(.sRGB) else { return false }
-                    return c.alphaComponent>0.99 && (c.redComponent+c.greenComponent+c.blueComponent)>0.02
-                }
-                check(filled,"Style \(style), \(Int(angle))° has no black or empty corners")
-                if let folder { try bitmap.representation(using:.png,properties:[:])!.write(to:folder.appendingPathComponent("style-\(style)-angle-\(Int(angle)).png")) }
+        for angle in [100.0,75,50,25,5] {
+            let result=try gpu.renderOffscreen(sample,settings:FoldSettings(angle:angle),size:size)
+            timings.append(result.1)
+            let bitmap=NSBitmapImageRep(cgImage:result.0)
+            let corners=[(0,0),(1279,0),(0,799),(1279,799)]
+            let filled=corners.allSatisfy { x,y in
+                guard let c=bitmap.colorAt(x:x,y:y)?.usingColorSpace(.sRGB) else { return false }
+                return c.alphaComponent>0.99 && (c.redComponent+c.greenComponent+c.blueComponent)>0.02
             }
+            check(filled,"\(Int(angle))° has no black or empty corners")
+            if let folder { try bitmap.representation(using:.png,properties:[:])!.write(to:folder.appendingPathComponent("angle-\(Int(angle)).png")) }
+        }
+        // A single horizontal feature must not split into repeated bands as it
+        // defocuses. Scan its vertical intensity profile for secondary peaks.
+        let dark=CIImage(color:CIColor(red:0,green:0,blue:0)).cropped(to:CGRect(x:0,y:0,width:1000,height:625))
+        let stripe=CIImage(color:CIColor(red:1,green:1,blue:1)).cropped(to:CGRect(x:0,y:350,width:1000,height:6)).composited(over:dark)
+        for angle in [80.0,50,20] {
+            let result=try gpu.renderOffscreen(stripe,settings:FoldSettings(angle:angle),size:CGSize(width:1000,height:625)).0
+            let bitmap=NSBitmapImageRep(cgImage:result)
+            let profile=(0..<625).map { Double(bitmap.colorAt(x:500,y:$0)!.redComponent) }
+            let peak=profile.indices.max(by:{profile[$0]<profile[$1]})!
+            let rise=(0..<peak).map { max(0,profile[$0]-profile[$0+1]) }.reduce(0,+)
+            let fall=(peak..<624).map { max(0,profile[$0+1]-profile[$0]) }.reduce(0,+)
+            print("BAND \(Int(angle)) excess=\(rise+fall) peak=\(profile[peak])")
+            if let folder { try bitmap.representation(using:.png,properties:[:])!.write(to:folder.appendingPathComponent("stripe-\(Int(angle)).png")) }
+            check(rise+fall <= 1.0/255.0+0.0001,"A horizontal edge stays one smooth blur at \(Int(angle))°")
         }
         // A white field must remain filled at all sampled angles, including every edge pixel.
         let white=CIImage(color:CIColor(red:1,green:1,blue:1)).cropped(to:CGRect(x:0,y:0,width:1000,height:625))

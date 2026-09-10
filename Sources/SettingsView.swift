@@ -11,105 +11,93 @@ struct PreviewSurface: NSViewRepresentable {
 
 struct SettingsView: View {
     @ObservedObject var model: AppModel
+    @State private var previewAngle: Double = 100
+    @State private var previewTask: Task<Void, Never>?
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    HStack(alignment: .top) {
-                        Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 48, height: 48).accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Fold").font(.system(size: 27, weight: .semibold, design: .rounded))
-                            Text("Close the lid. Let the desktop follow.").foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Text("Open source").font(.caption).foregroundStyle(.secondary).padding(.top, 10)
-                    }
-                    VStack(spacing: 12) {
-                        PreviewSurface(settings: model.settings)
-                            .aspectRatio(1.6, contentMode: .fit)
-                            .frame(maxWidth: 440)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(.primary.opacity(0.12)))
-                            .accessibilityLabel("Generated desktop preview at \(Int(model.settings.angle)) degrees")
-                        HStack {
-                            Text(model.enabled ? "Lid angle" : "Preview angle")
-                            Slider(value: $model.angle, in: 5...130, step: 1).disabled(model.enabled).accessibilityLabel("Preview angle")
-                            Text("\(Int(model.settings.angle))°").monospacedDigit().frame(width: 44, alignment: .trailing)
-                        }
-                    }.frame(maxWidth: .infinity)
-                    GroupBox("Works on its own") {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Toggle("Automatic folding", isOn: Binding(get: { model.automatic }, set: { model.setAutomatic($0) }))
-                            Toggle("Start at login", isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
-                            Toggle("Show menu bar icon", isOn: $model.showMenuBar)
-                            Text("Close this window and Fold keeps working. Open Fold from Applications whenever you want to change settings.").font(.caption).foregroundStyle(.secondary)
-                            if !model.loginMessage.isEmpty { Text(model.loginMessage).font(.caption).foregroundStyle(.orange) }
-                        }.frame(maxWidth: .infinity, alignment: .leading).padding(10)
-                    }
-                    GroupBox("Appearance") {
-                        VStack(spacing: 13) {
-                            Picker("Style", selection: $model.style) {
-                                Text("Original").tag(0); Text("Dusk").tag(1); Text("Mist").tag(2)
-                            }.pickerStyle(.segmented)
-                            control("Stretch", value: $model.perspective)
-                            control("Blur", value: $model.blur)
-                            control("Shade", value: $model.shadow)
-                            HStack {
-                                Text("Clear above").frame(width: 90, alignment: .leading)
-                                Slider(value: $model.clearAngle, in: 45...120, step: 1).accessibilityLabel("Clear above angle")
-                                Text("\(Int(model.clearAngle))°").monospacedDigit().frame(width: 44, alignment: .trailing)
-                            }
-                            Toggle("Soft sound when the desktop clears", isOn: $model.sound).frame(maxWidth: .infinity, alignment: .leading)
-                            if model.reducedMotion {
-                                Label("Reduce Motion is on. Perspective is disabled.", systemImage: "accessibility").font(.caption).foregroundStyle(.secondary)
-                            }
-                        }.padding(10)
-                    }
-                    HStack {
-                        Text("Lid sensor")
-                        Spacer()
-                        if let angle = model.sensorAngle {
-                            Label("Connected · \(Int(angle))°", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                        } else {
-                            Text("Not available on this Mac").foregroundStyle(.secondary)
-                        }
-                    }
-                    Text("Holding the lid still clears the effect after 2.5 seconds. The next lid movement starts it again.").font(.caption).foregroundStyle(.secondary)
-                }.padding(24)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 12) {
+                Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 48, height: 48).accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Fold").font(.system(size: 26, weight: .semibold))
+                    Text("A little motion. Naturally.").foregroundStyle(.secondary)
+                }
+                Spacer()
             }
-            Divider()
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(spacing: 10) {
+                PreviewSurface(settings: FoldSettings(angle: previewAngle, reducedMotion: model.reducedMotion))
+                    .aspectRatio(1.6, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .accessibilityLabel("Preview of the fold effect on a sample desktop")
                 HStack {
-                    Button(model.enabled || model.demo ? "Pause for now" : "Resume folding", systemImage: model.enabled || model.demo ? "pause.fill" : "play.fill") {
-                        if model.enabled || model.demo { model.pause() } else { model.activate() }
-                    }.buttonStyle(.borderedProminent).controlSize(.large)
-                        .disabled(!(model.enabled || model.demo) && (model.sensorAngle == nil || !model.emergencyShortcutAvailable))
-                    Button("Preview desktop · 8 sec") { model.previewDesktop() }.controlSize(.large)
+                    Text("Your desktop follows the lid.").font(.callout).foregroundStyle(.secondary)
                     Spacer()
-                    Button("Restore original") { model.resetAppearance() }.buttonStyle(.borderless)
+                    Button(previewTask == nil ? "Preview" : "Stop preview", systemImage: previewTask == nil ? "play" : "stop") { togglePreview() }
+                        .accessibilityHint("Plays the effect inside this window")
                 }
-                Text(model.message).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+            GroupBox {
+                VStack(spacing: 12) {
+                    settingToggle("Automatic folding", isOn: Binding(get: { model.automatic }, set: { model.setAutomatic($0) }))
+                    Divider()
+                    settingToggle("Start at login", isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
+                    settingToggle("Show menu bar icon", isOn: $model.showMenuBar)
+                }.toggleStyle(.switch).padding(10)
+            }
+            VStack(alignment: .leading, spacing: 7) {
+                HStack {
+                    Label(status, systemImage: model.permissionNeeded || model.sensorAngle == nil ? "exclamationmark.circle" : model.enabled ? "checkmark.circle" : "pause.circle")
+                        .font(.callout.weight(.medium))
+                    Spacer()
+                    if model.enabled {
+                        Button("Pause for now") { model.pause() }.buttonStyle(.link)
+                    } else if model.automatic && !model.permissionNeeded && model.sensorAngle != nil && model.emergencyShortcutAvailable {
+                        Button("Resume") { model.activate() }.buttonStyle(.link)
+                    }
+                }
                 if model.permissionNeeded {
-                    Button("Open Screen Recording settings…") { model.openPrivacySettings() }
+                    Button("Allow screen access…") { model.openPrivacySettings() }
+                    Text("Allow Fold in Screen Recording, then reopen it.").font(.caption).foregroundStyle(.secondary)
+                } else if !model.emergencyShortcutAvailable {
+                    Text("The stop shortcut is unavailable. Close any app using Command-Shift-Escape, then reopen Fold.").font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text("Close Settings and Fold keeps working. Holding the lid still clears the effect.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
-                if !model.emergencyShortcutAvailable {
-                    Label("Global stop shortcut unavailable. Automatic folding is disabled.", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
-                }
-                HStack {
-                    Label("On your Mac. Nothing saved or uploaded.", systemImage: "lock.shield").font(.caption).foregroundStyle(.secondary)
-                    Spacer()
-                    Text("⌘⇧Esc to stop").font(.caption).foregroundStyle(.secondary)
-                }
-                Text("The effect clears automatically if the lid is held still or nearly closed.").font(.caption).foregroundStyle(.secondary)
-            }.padding(20)
-        }.frame(minWidth: 540, idealWidth: 620, maxWidth: .infinity, minHeight: 600, idealHeight: 940)
-            .background(Color(nsColor: .windowBackgroundColor))
+                if !model.loginMessage.isEmpty { Text(model.loginMessage).font(.caption).foregroundStyle(.secondary) }
+                if model.reducedMotion { Text("Respects Reduce Motion.").font(.caption).foregroundStyle(.secondary) }
+            }
+            HStack {
+                Text("On your Mac. Nothing uploaded.")
+                Spacer()
+                Text("⌘⇧Esc to pause")
+            }.font(.caption).foregroundStyle(.secondary)
+        }
+        .padding(24)
+        .frame(width: 480)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .onDisappear { previewTask?.cancel(); previewTask = nil; previewAngle = 100 }
     }
-    private func control(_ title: String, value: Binding<Double>) -> some View {
+    private func settingToggle(_ title: String, isOn: Binding<Bool>) -> some View {
         HStack {
-            Text(title).frame(width: 90, alignment: .leading)
-            Slider(value: value, in: 0...1).accessibilityLabel(title)
-            Text("\(Int(value.wrappedValue * 100))%").monospacedDigit().frame(width: 44, alignment: .trailing)
+            Text(title)
+            Spacer()
+            Toggle(title, isOn: isOn).labelsHidden().toggleStyle(.switch)
+        }
+    }
+    private var status: String {
+        if model.permissionNeeded { return "Screen access needed" }
+        if model.sensorAngle == nil { return "Lid sensor unavailable" }
+        if !model.emergencyShortcutAvailable { return "Stop shortcut unavailable" }
+        return model.enabled ? "Ready when you move" : "Paused"
+    }
+    private func togglePreview() {
+        if let task = previewTask { task.cancel(); previewTask = nil; previewAngle = 100; return }
+        previewTask = Task { @MainActor in
+            for frame in 0...240 {
+                guard !Task.isCancelled else { return }
+                previewAngle = 100-88*(0.5-0.5*cos(Double(frame)/240*2*Double.pi))
+                do { try await Task.sleep(nanoseconds: 16_666_667) } catch { return }
+            }
+            previewAngle = 100; previewTask = nil
         }
     }
 }

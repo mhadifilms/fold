@@ -19,7 +19,7 @@ enum ExperienceTest {
         text.textColor = .white; text.font = .systemFont(ofSize:20,weight:.medium); text.frame = NSRect(x:18,y:17,width:704,height:26)
         banner.contentView?.addSubview(text); banner.orderFrontRegardless(); labelWindow = banner; status = text
         func phase(_ value: String) { text.stringValue = value; print(value); fflush(stdout) }
-        model.testUsesSensor = true; model.testSensorAngle = 112; model.showMenuBar = false; model.resetAppearance()
+        model.testUsesSensor = true; model.testSensorAngle = 112; model.showMenuBar = false
         let args = CommandLine.arguments
         if let i = args.firstIndex(of:"--proof-video"), i+1 < args.count {
             let r = ProofRecorder(); recorder = r

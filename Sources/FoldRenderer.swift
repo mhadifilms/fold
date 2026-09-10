@@ -4,11 +4,7 @@ import MetalKit
 
 struct FoldSettings: Equatable {
     var angle: Double = 58
-    var clearAngle: Double = 100
-    var perspective: Double = 0.72
-    var blur: Double = 0.85
-    var shadow: Double = 0.28
-    var style: Int = 0
+    let clearAngle: Double = 100
     var reducedMotion = false
     var progress: Double {
         guard angle.isFinite, clearAngle.isFinite, clearAngle > 0 else { return 0 }
@@ -36,7 +32,7 @@ struct MotionSmoother {
 }
 
 struct FoldUniforms {
-    var progress, perspective, blur, shade, style, width, height, reducedMotion: Float
+    var progress, width, height, reducedMotion: Float
 }
 
 final class FoldGPU {
@@ -44,6 +40,8 @@ final class FoldGPU {
     let queue: MTLCommandQueue
     let context: CIContext
     private let pipeline: MTLRenderPipelineState
+    private let downsample: MTLComputePipelineState
+    private var levels: [MTLTexture] = []
     private var input: MTLTexture?
     private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
     init() throws {
@@ -56,6 +54,7 @@ final class FoldGPU {
             throw NSError(domain:"FoldGPU",code:2,userInfo:[NSLocalizedDescriptionKey:"The fold shader is missing. Reinstall the app."])
         }
         let library=try device.makeLibrary(source:String(contentsOf:url),options:nil)
+        downsample=try device.makeComputePipelineState(function:library.makeFunction(name:"foldDownsample")!)
         let descriptor=MTLRenderPipelineDescriptor()
         descriptor.vertexFunction=library.makeFunction(name:"foldVertex")
         descriptor.fragmentFunction=library.makeFunction(name:"foldFragment")
@@ -72,16 +71,26 @@ final class FoldGPU {
             let desc=MTLTextureDescriptor.texture2DDescriptor(pixelFormat:.bgra8Unorm,width:width,height:height,mipmapped:true)
             desc.usage=[.shaderRead,.shaderWrite,.renderTarget];desc.storageMode = .private
             input=device.makeTexture(descriptor:desc)
+            levels = (0..<(input?.mipmapLevelCount ?? 0)).map { level in
+                input!.makeTextureView(pixelFormat:.bgra8Unorm,textureType:.type2D,levels:level..<(level+1),slices:0..<1)!
+            }
         }
         guard let input else { return }
         let normalized=image.transformed(by:CGAffineTransform(translationX:-extent.minX,y:-extent.minY))
             .transformed(by:CGAffineTransform(scaleX:CGFloat(width)/extent.width,y:CGFloat(height)/extent.height))
         context.render(normalized,to:input,commandBuffer:command,bounds:CGRect(x:0,y:0,width:width,height:height),colorSpace:colorSpace)
-        let blit=command.makeBlitCommandEncoder();blit?.generateMipmaps(for:input);blit?.endEncoding()
+        for level in 1..<levels.count {
+            guard let encoder=command.makeComputeCommandEncoder() else { continue }
+            encoder.setComputePipelineState(downsample)
+            encoder.setTexture(levels[level-1],index:0)
+            encoder.setTexture(levels[level],index:1)
+            encoder.dispatchThreads(MTLSize(width:levels[level].width,height:levels[level].height,depth:1),threadsPerThreadgroup:MTLSize(width:16,height:16,depth:1))
+            encoder.endEncoding()
+        }
     }
     func encode(target: MTLTexture, command: MTLCommandBuffer, settings: FoldSettings, progress: Double) {
         guard let input else { return }
-        var uniforms=FoldUniforms(progress:Float(progress),perspective:Float(settings.perspective),blur:Float(settings.blur),shade:Float(settings.shadow),style:Float(settings.style),width:Float(input.width),height:Float(input.height),reducedMotion:settings.reducedMotion ? 1 : 0)
+        var uniforms=FoldUniforms(progress:Float(progress),width:Float(input.width),height:Float(input.height),reducedMotion:settings.reducedMotion ? 1 : 0)
         let pass=MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture=target
         pass.colorAttachments[0].loadAction = .dontCare;pass.colorAttachments[0].storeAction = .store

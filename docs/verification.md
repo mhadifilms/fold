@@ -1,3 +1,17 @@
+# Fold 1.0.2 verification
+
+One effect replaces the three style variants and appearance sliders. The compact native Settings window has an in-window preview and three behavior switches; saved legacy appearance values are ignored. The installed window was visually inspected in dark mode with the bundled logo, clear preview, readable controls and no scrolling.
+
+The new Gaussian pyramid and projective mapping were compared against the prior renderer using original sample artwork. The horizontal-stripe regression passes at 80°, 50° and 20° with no secondary intensity rises. The previous renderer fails the 50° case (two 8-bit steps of secondary rise; tolerance is one step). All 34 current graphics/recovery checks pass; the count removes ten redundant checks for the deleted styles and adds three band regressions. A new 60 fps preview was rendered with the shipping shader.
+
+The signed build's GPU command timing at 2560×1600 including upload and prefiltering was 2.563 ms median and 3.759 ms p95. These are single-machine GPU measurements, not end-to-end latency guarantees.
+
+The first installed live test ran while macOS reported the physical lid closed (`AppleClamshellState = Yes`) and produced no display frames. A repeat with the lid open is pending; this run is not counted as a successful live verification.
+
+Notarization is still awaiting the user's Apple authentication setup. The build is Developer ID signed and timestamped, not notarized.
+
+---
+
 # Fold 1.0.1 verification
 
 Build 6 renames the app, cover and repository to Fold while retaining the existing bundle identifier and Developer ID identity. The installed app is `/Applications/Fold.app`; its login registration was refreshed to the new path.
