@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Carbon
+import CoreImage
 
 final class OverlayPanel: NSPanel {
     override var canBecomeKey: Bool { false }
@@ -9,7 +10,6 @@ final class OverlayPanel: NSPanel {
 
 final class AppModel: ObservableObject {
     @Published var angle: Double = 58 { didSet { updateAppearance() } }
-    private let clearAngle: Double = 90
     let diagnostic = CommandLine.arguments.contains("--integration-test") || CommandLine.arguments.contains("--experience-test")
     @Published var automatic = UserDefaults.standard.object(forKey: "automatic") as? Bool ?? true
     @Published var showMenuBar = UserDefaults.standard.bool(forKey: "showMenuBar") { didSet {
@@ -19,11 +19,8 @@ final class AppModel: ObservableObject {
     @Published var loginMessage = ""
     @Published var waitingForMotion = true
     private var safety = FoldSafety()
-    private var effectAllowed = false
     private var suspended = false
     private var lastSensorAt: Double?
-    private var lastSensorAngle: Double?
-    private var warmCaptureUntil: Double = 0
     private var revealAfter: Double?
     private var recoveryTimer: Timer?
     private var retryAfter: Double = 0
@@ -54,6 +51,7 @@ final class AppModel: ObservableObject {
     private var capture: DesktopCapture?
     private var panel: OverlayPanel?
     private var metal: FoldMetalView?
+    private var readyFrame: CIImage?
     private var token = UUID()
     private var starting = false
     private var demoDeadline: Date?
@@ -65,7 +63,8 @@ final class AppModel: ObservableObject {
     private var statusItem: NSStatusItem?
 
     var settings: FoldSettings {
-        FoldSettings(angle: enabled ? (effectAllowed ? (sensorAngle ?? clearAngle) : clearAngle) : angle, clearAngle: enabled ? clearAngle : 100, reducedMotion: reducedMotion)
+        FoldSettings(angle: enabled ? 100 * (1 - safety.progress) : angle, reducedMotion: reducedMotion,
+                     projectionProgress: enabled ? safety.poseProgress : nil, opacity: enabled ? safety.opacity : 1)
     }
 
     func setup(requestScreenPermission: Bool = true) {
@@ -122,12 +121,9 @@ final class AppModel: ObservableObject {
     }
 
     private func receiveSensor(_ reading: Double?) {
-        let value = diagnostic && testUsesSensor ? testSensorAngle : reading
+        let raw = diagnostic && testUsesSensor ? testSensorAngle : reading
+        let value = raw.flatMap { $0.isFinite && (0...180).contains($0) ? $0 : nil }
         let now = CACurrentMediaTime()
-        if let value, let previous = lastSensorAngle, value < previous - 0.25 {
-            warmCaptureUntil = now + 0.6
-        }
-        lastSensorAngle = value
         lastSensorAt = now
         if let value {
             if sensorAngle != value { sensorAngle = value }
@@ -153,10 +149,10 @@ final class AppModel: ObservableObject {
         } catch { launchAtLogin = LoginService.enabled; loginMessage = error.localizedDescription }
     }
     func suspendForSystem() {
-        suspended = true; safety.suspend(); effectAllowed = false; stopEffect()
+        suspended = true; safety.suspend(); stopEffect()
     }
     func resumeAfterSystem() {
-        safety.suspend(); effectAllowed = false; suspended = false
+        safety.suspend(); suspended = false
         lastSensorAt = nil
         // Recreate the display clock after display changes or wake.
         displayLink?.invalidate()
@@ -174,10 +170,10 @@ final class AppModel: ObservableObject {
         }
         guard enabled, !suspended else { return }
         let fresh = lastSensorAt.map { now - $0 < 0.75 } ?? false
-        effectAllowed = safety.permitsEffect(angle: fresh ? sensorAngle : nil, clearAngle: clearAngle, now: now)
+        _ = safety.permitsEffect(angle: fresh ? sensorAngle : nil, now: now)
         if waitingForMotion != safety.waitingForMotion { waitingForMotion = safety.waitingForMotion }
+        if !fresh || sensorAngle == nil { stopEffect() }
         if waitingForMotion {
-            if captureIsRunning || overlayIsVisible { stopEffect() }
             message = "Ready for your next lid movement. The desktop is clear."
         } else {
             message = "Automatic folding is on. You can close Settings."
@@ -188,8 +184,8 @@ final class AppModel: ObservableObject {
         guard emergencyShortcutAvailable else { message = "The stop shortcut is unavailable. Close any app using Command-Shift-Escape, then reopen Fold."; return }
         guard hasPermission() else { return }
         stopEffect()
-        demo = false; enabled = true; safety = FoldSafety(); effectAllowed = false
-        message = "Following your lid. Close it below 90° to fold."
+        demo = false; enabled = true; safety = FoldSafety()
+        message = "Following your lid. Close it a little to fold; open it to clear."
         refreshMenu()
     }
     func previewDesktop() {
@@ -210,7 +206,7 @@ final class AppModel: ObservableObject {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
     }
     func pause() {
-        enabled = false; demo = false; demoDeadline = nil; effectAllowed = false; safety.suspend()
+        enabled = false; demo = false; demoDeadline = nil; safety.suspend()
         stopEffect()
         message = "Paused. Your desktop is back to normal."
         refreshMenu()
@@ -219,10 +215,10 @@ final class AppModel: ObservableObject {
         if let deadline = demoDeadline, Date() >= deadline { pause(); return }
         guard (enabled || demo) && !suspended else { return }
         if permissionNeeded { return }
-        if enabled && safety.waitingForMotion { return }
+        if enabled && (sensorAngle == nil || lastSensorAt.map({ CACurrentMediaTime() - $0 >= 0.75 }) != false) { return }
         if CACurrentMediaTime() < retryAfter { return }
         let effectVisible = settings.progress > 0.0001
-        requestedCaptureRate = effectVisible || demo || CACurrentMediaTime() < warmCaptureUntil ? captureFPS : 1
+        requestedCaptureRate = effectVisible || demo ? captureFPS : 1
         if !effectVisible, metal?.settled == true, panel?.isVisible == true {
             panel?.orderOut(nil); panel?.alphaValue = 0; revealAfter = nil
         }
@@ -230,11 +226,13 @@ final class AppModel: ObservableObject {
         if let frame = capture?.takeFrame() {
             receivedFrames += 1
             lastFrameAt = Date()
-            metal?.source = frame
+            if effectVisible || panel?.isVisible == true { metal?.source = frame; readyFrame = nil }
+            else { readyFrame = frame }
         }
         if let lastFrameAt, Date().timeIntervalSince(capture?.lastActivity ?? lastFrameAt) > 6 {
             recoverCapture("Screen capture paused. Move the lid to retry."); return
         }
+        if effectVisible, let readyFrame { metal?.source = readyFrame; self.readyFrame = nil }
         if effectVisible, metal?.source != nil, panel?.isVisible == false {
             // Prepare a flat, current frame invisibly before replacing the live desktop.
             revealAfter = CACurrentMediaTime()
@@ -243,7 +241,7 @@ final class AppModel: ObservableObject {
             panel?.orderFrontRegardless()
         }
         if revealAfter != nil {
-            var flat = settings; flat.angle = flat.clearAngle
+            var flat = settings; flat.angle = flat.clearAngle; flat.opacity = 0
             metal?.settings = flat
             metal?.isPaused = false
         } else { metal?.settings = settings }
@@ -281,8 +279,8 @@ final class AppModel: ObservableObject {
             // An idle acknowledgement is also valid: SCK confirmed that its last
             // desktop image has not changed. Never flash a stale paused frame.
             self.revealAfter = nil
-            self.metal?.resetMotion()
             self.metal?.settings = self.settings
+            self.metal?.resetMotion()
             NSAnimationContext.runAnimationGroup { context in
                 context.duration = 0.12
                 context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
@@ -325,7 +323,7 @@ final class AppModel: ObservableObject {
         }
     }
     private func recoverCapture(_ reason: String) {
-        stopEffect(); safety.suspend(); effectAllowed = false
+        stopEffect(); safety.suspend()
         permissionNeeded = !CGPreflightScreenCaptureAccess()
         retryAfter = CACurrentMediaTime() + 3
         if demo { pause() }
@@ -334,7 +332,7 @@ final class AppModel: ObservableObject {
     private func stopEffect() {
         token = UUID(); starting = false; changingCaptureRate=false; appliedCaptureRate=0; revealAfter = nil
         panel?.orderOut(nil); panel?.close(); panel = nil; metal = nil
-        lastFrameAt = nil
+        lastFrameAt = nil; readyFrame = nil
         let old = capture; capture = nil
         if let old { Task { await old.stop() } }
     }

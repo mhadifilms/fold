@@ -2,7 +2,7 @@
 
 # Fold
 
-A native, open-source MacBook utility inspired by the iPhone Duo's folding transition. Your desktop stays in place as you lower the lid. Progressive blur and soft side shadows follow the fold; the physical lid supplies the perspective.
+A native, open-source MacBook utility inspired by the iPhone Duo's folding transition. The lid folds around an apparently stationary desktop. Perspective compensation holds the image visually steady while the top edge moves across it, revealing dark side wedges and progressive blur.
 
 Fold runs locally, with no account, analytics, recording files, network calls, or paid dependencies. MIT licensed.
 
@@ -18,20 +18,20 @@ Fold runs locally, with no account, analytics, recording files, network calls, o
 
 The settings **Automatic folding** switch persists across launches. **Start at login** uses Apple's ServiceManagement registration; macOS may require approval in Login Items. The Dock icon is visible only while Settings is open. A menu bar control is optional.
 
-The effect starts only while closing below **90°**. Opening to 90° clears it immediately. If you stop while reopening below 90°, it clears after 120 ms; continuing to reopen keeps the desktop clear. Closing again can start a new fold from that position. Holding still while closing clears within 450 ms, or 100 ms at 8° and below. Sensor loss, sleep and session changes clear the effect; continuously moving transitions are bounded to eight seconds.
+The first closing step starts the effect from any working lid position. The sensor reports whole degrees, so a one-degree movement is enough. Opening reverses the same position curve; it does not trigger a separate release or dissolve. Undoing the closing movement clears the effect without extra opening travel. There is no 90° threshold. Settled-lid recovery discards the old gesture so the next one starts from the new posture. Sensor loss, sleep and session changes clear the effect; near closure and maximum-duration limits prevent a stuck overlay.
 
-There is one effect and no remembered starting angle. **Preview** plays the effect inside Settings using original sample artwork, without screen permission. The three settings control automatic folding, launch at login and the optional menu bar icon.
+There is one effect. **Preview** shows the native renderer on a simulated physical lid using original artwork, without screen permission. The three settings control automatic folding, launch at login and the optional menu bar icon.
 
 ## Included in 1.0
 
 - Automatic operation after setup, optional menu bar icon, persisted settings, native launch-at-login registration.
 - The generated logo is included as both the Finder app icon and an explicitly loaded runtime icon, including Settings and Dock.
 - Held-lid, nearly-closed, stale-sensor, sleep/wake and maximum-duration recovery.
-- A fresh-frame handoff and 120 ms entrance blend remove the abrupt switch into the overlay. Closing motion warms capture before the fold begins.
-- A continuous focus gradient with fixed desktop coordinates, informed by the Apple launch, product demonstration and Duo reference frames. A Gaussian pyramid avoids repeated horizontal blur bands, and pixels fill every edge.
+- A fresh-frame handoff and 120 ms entrance blend remove the abrupt switch into the overlay. Capture stays warm between gestures so entry does not wait for a new stream.
+- A continuous focus gradient and one perspective correction, informed by the Apple launch, product demonstration and all 469 frames of the requested MacBook example. A Gaussian pyramid avoids repeated horizontal blur bands.
 - A visible end-to-end test for the actual capture and presentation pipeline, with an optional screen recording for local review.
 
-Rendering follows the display up to 120 Hz. Capture stays ready at 1 fps when armed and clear, and releases completely after a safety reset or pause. The overlay changes pixels; other apps' click targets remain in their original positions.
+Rendering follows the display up to 120 Hz. Capture stays ready at 1 fps when armed and clear, and releases completely on pause, sensor loss, sleep or session changes. Warm idle frames are retained in memory without continuously rendering the hidden overlay. The overlay changes pixels; other apps' click targets remain in their original positions.
 
 ## Permissions and signing
 
@@ -40,6 +40,19 @@ ScreenCaptureKit needs macOS Screen Recording access to draw the desktop effect.
 The app checks permission on startup and requests it only if missing. Denying it leaves the generated preview available. macOS may still show its own periodic capture reminders; the app cannot suppress system security UI. Keep the same signed app in Applications to preserve its identity. Unsigned/ad-hoc rebuilds or changing signing identity may require authorization again.
 
 The build script supports a Developer ID certificate through `SIGNING_IDENTITY`; it does not bundle credentials or create a signing identity. See each release's notes for signing and notarization status.
+
+## Notarize a signed build
+
+Apple notarization requires service authentication in addition to a Developer ID signature. Create an app-specific password in your Apple Account, then store it through Apple's hidden prompt (never put the password in a script or commit):
+
+```sh
+xcrun notarytool store-credentials fold-notary --apple-id YOUR_APPLE_ACCOUNT --team-id YOUR_TEAM_ID
+scripts/notarize.sh /absolute/path/to/Fold.app /absolute/path/to/notary-work
+```
+
+The script verifies the signature, submits the archive, requires an `Accepted` result, staples and validates Apple's ticket, checks Gatekeeper, and repacks the app with its ticket. `NOTARY_PROFILE` selects a different existing Keychain profile. It does not sign the app or create credentials. If Apple's processing exceeds 15 minutes, preserve `submission.json` and resume that submission rather than uploading a duplicate.
+
+See [Apple's notarization workflow](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow).
 
 ## Requirements
 
@@ -96,7 +109,7 @@ Adding `--proof-video /absolute/path/run.mov` explicitly records the display for
 - `Sources/AppModel.swift`: lifecycle, menu bar, authorization, capture session, stop handling.
 - `Sources/LidSensor.swift`: direct IOKit HID feature report reading, at 60 Hz.
 - `Sources/FoldRenderer.swift`: display-paced Metal presentation and motion interpolation.
-- `Resources/Fold.metal`: spatial blur and shade with no software distortion.
+- `Resources/Fold.metal`: inverse physical projection, progressive blur and side coverage.
 - `Sources/DesktopCapture.swift`: ScreenCaptureKit with this app excluded.
 - `Sources/SettingsView.swift`: native SwiftUI controls.
 

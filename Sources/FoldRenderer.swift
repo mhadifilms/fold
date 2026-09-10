@@ -6,6 +6,9 @@ struct FoldSettings: Equatable {
     var angle: Double = 58
     var clearAngle: Double = 100
     var reducedMotion = false
+    var projectionProgress: Double? = nil
+    var opacity: Double = 1
+    var poseProgress: Double { projectionProgress ?? progress }
     var progress: Double {
         guard angle.isFinite, clearAngle.isFinite, clearAngle > 0 else { return 0 }
         return min(1,max(0,(clearAngle-angle)/clearAngle))
@@ -13,13 +16,14 @@ struct FoldSettings: Equatable {
 }
 
 /// An analytic critically damped spring. Unlike a per-frame lerp, its behavior
-/// is independent of frame rate and it retains velocity during reversals.
+/// is independent of frame rate. Releasing never carries closing momentum.
 struct MotionSmoother {
     var value: Double = 0
     var velocity: Double = 0
     mutating func step(target: Double, dt: Double) -> Double {
         guard target.isFinite, dt.isFinite, dt > 0 else { return value }
-        let t = min(dt,0.05), omega = 42.0
+        let t = min(dt,0.05), omega = 72.0
+        if target < value && velocity > 0 { velocity = 0 }
         let displacement = value-target
         let c = velocity+omega*displacement
         let decay = exp(-omega*t)
@@ -33,6 +37,7 @@ struct MotionSmoother {
 
 struct FoldUniforms {
     var progress, width, height, reducedMotion: Float
+    var opacity, pad0, pad1, pad2: Float
 }
 
 final class FoldGPU {
@@ -101,7 +106,7 @@ final class FoldGPU {
     }
     func encode(target: MTLTexture, command: MTLCommandBuffer, settings: FoldSettings, progress: Double) {
         guard let input else { return }
-        var uniforms=FoldUniforms(progress:Float(progress),width:Float(input.width),height:Float(input.height),reducedMotion:settings.reducedMotion ? 1 : 0)
+        var uniforms=FoldUniforms(progress:Float(progress),width:Float(input.width),height:Float(input.height),reducedMotion:settings.reducedMotion ? 1 : 0,opacity:Float(settings.opacity),pad0:0,pad1:0,pad2:0)
         let pass=MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture=target
         pass.colorAttachments[0].loadAction = .dontCare;pass.colorAttachments[0].storeAction = .store
@@ -116,7 +121,7 @@ final class FoldGPU {
         let desc=MTLTextureDescriptor.texture2DDescriptor(pixelFormat:.bgra8Unorm,width:Int(size.width),height:Int(size.height),mipmapped:false)
         desc.usage=[.renderTarget,.shaderRead];desc.storageMode = .shared
         guard let output=device.makeTexture(descriptor:desc),let command=queue.makeCommandBuffer() else { throw NSError(domain:"FoldGPU",code:3) }
-        upload(image,command:command);encode(target:output,command:command,settings:settings,progress:settings.progress)
+        upload(image,command:command);encode(target:output,command:command,settings:settings,progress:settings.poseProgress)
         command.commit();command.waitUntilCompleted()
         if let error=command.error { throw error }
         let row=Int(size.width)*4
@@ -133,16 +138,18 @@ final class FoldMetalView: MTKView, MTKViewDelegate {
     private var pendingSource: CIImage?
     private var hasSource=false
     private var smoother=MotionSmoother()
+    private var visibility=MotionSmoother()
     private var lastTime: CFTimeInterval?
     private var inflight=DispatchSemaphore(value:3)
     var source: CIImage? { didSet { pendingSource=source; isPaused=false } }
     var settings=FoldSettings() { didSet { if settings != oldValue { isPaused=false } } }
     var onPresented: (() -> Void)?
     func resetMotion() {
-        smoother = MotionSmoother(); lastTime = nil; isPaused = false
+        smoother = MotionSmoother(value:settings.poseProgress)
+        visibility = MotionSmoother(); lastTime = nil; isPaused = false
     }
     var initializationError: String?
-    var settled: Bool { abs(smoother.value-settings.progress)<0.0001 && abs(smoother.velocity)<0.002 }
+    var settled: Bool { abs(smoother.value-settings.poseProgress)<0.0001 && abs(smoother.velocity)<0.002 && abs(visibility.value-settings.opacity)<0.0001 && abs(visibility.velocity)<0.002 }
     init() {
         super.init(frame:.zero,device:MTLCreateSystemDefaultDevice())
         do { gpu=try FoldGPU() } catch { initializationError=error.localizedDescription }
@@ -163,9 +170,11 @@ final class FoldMetalView: MTKView, MTKViewDelegate {
         guard inflight.wait(timeout:.now()) == .success else { return }
         guard let drawable=currentDrawable,let command=gpu.queue.makeCommandBuffer() else { inflight.signal();return }
         let now=CACurrentMediaTime();let dt=lastTime.map { now-$0 } ?? 1.0/Double(preferredFramesPerSecond);lastTime=now
-        let progress=smoother.step(target:settings.progress,dt:dt)
+        let progress=smoother.step(target:settings.poseProgress,dt:dt)
+        var displayed=settings
+        displayed.opacity=visibility.step(target:settings.opacity,dt:dt)
         if let pendingSource { gpu.upload(pendingSource,command:command);self.pendingSource=nil;hasSource=true }
-        gpu.encode(target:drawable.texture,command:command,settings:settings,progress:progress)
+        gpu.encode(target:drawable.texture,command:command,settings:displayed,progress:progress)
         command.present(drawable)
         command.addCompletedHandler { [weak self] _ in
             self?.inflight.signal()

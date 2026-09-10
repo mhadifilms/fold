@@ -1,3 +1,43 @@
+# Fold 1.0 build 17 — notarization preparation
+
+The app's public version is now **1.0**. The internal build counter advances to 17; this is not a new animation revision. The bundle identifier, approved artwork, compact Settings and build 16 behavior are unchanged.
+
+The fresh build passed all 102 graphics and recovery checks. It is Developer ID signed and timestamped, and strict signature verification passed. The 1.0 bundle is installed at `/Applications/Fold.app` and copied to the deliverables. Previous installations were preserved locally.
+
+Notarization is not complete: neither `fold-notary` nor the earlier `macfold-notary` credential profile exists. The source includes a notarization helper that checks authentication before upload and requires Apple acceptance, ticket stapling and Gatekeeper validation before producing its final archive. The signed submission archive is prepared locally, but no submission or approval is claimed.
+
+---
+
+# Fold 1.0.7 build 16 candidate verification
+
+Physical feedback on build 15 identified excessive vertical stretching. Build 16 retains the horizontal projection, side wedges, focus field and interaction, but uses 60% of the previous height compensation. Maximum hinge expansion drops from 3.24x to 1.71x; at 60 degrees it drops from 2.00x to 1.43x. This is a bounded visual approximation for an uncalibrated viewer, not an exact camera reconstruction.
+
+All 102 graphics and recovery checks passed. A new rendered-square regression measures actual pixel bounds at 0, 20, 40, 60, 72 and 100 degrees of travel. Its height-to-width ratio is 1.00, 1.00, 1.09, 1.30, 1.49 and 1.49 respectively, with width remaining 96–100 pixels from a 100-pixel source. These are panel-space measurements, not proof of identical apparent dimensions from every viewing position. The existing smooth-blur, coordinates, hinge contrast, side coverage and recovery checks also pass.
+
+The original-artwork preview was regenerated from 300 native Metal frames and inspected alongside the prior shader output. The simulation retains its existing physical-camera model; it demonstrates the changed render but cannot establish visual acceptance on the laptop. All gesture, reversal, hold and onset code is unchanged from build 15.
+
+The signed installed app passed all 26 live assertions with scripted lid input, actual ScreenCaptureKit and onscreen Metal: 364 frames received and 552 presented. Bundled logo/preview assets, first-degree onset, continuous partial reversal, full undo, hold recovery, repeated gestures, sensor loss/wraparound, wake and pause passed. It was then relaunched in normal background mode. At that startup the physical sensor was returning its invalid 359-degree sentinel, so automatic folding remained configured but disarmed with no overlay or capture. The existing startup path activates on the next valid sensor sample; this final physical recovery has not been observed in this pass.
+
+GPU timing at 2560×1600 including upload and prefiltering: 1.113 ms median, 3.164 ms p95. The installed candidate is Developer ID signed and timestamped with the existing bundle identity. Signature verification passed. No public binary release or notarization submission was made in this pass.
+
+---
+
+# Fold 1.0.7 build 15 verification (superseded)
+
+Build 15 replaces both the panel-pinned texture and the earlier nonlinear stretch with inverse rigid-lid projection. The apparent image stays in the viewer's space while the physical panel crosses it. Opening uses the same position curve as closing; no first-opening-step dismissal or separate release animation remains. The 90-degree activation threshold is removed.
+
+All 96 graphics and recovery checks passed. Rendered coordinate ramps are compared with the inverse of physical projection, replacing the mistaken panel-coordinate invariant. Horizontal stripe, hinge detail, edge coverage and progressive focus regressions pass. Gesture checks include first-degree onset at five starting postures, proportional partial reversal, full undo without extra travel, a complete nine-second closing/hold/reopening sequence, current-posture rearming and recovery.
+
+The signed installation passed all 26 live assertions using scripted sensor input with real ScreenCaptureKit and onscreen Metal: 387 frames received, 556 presented. It showed a one-degree gesture within 180 ms and cleared its complete one-degree undo within 220 ms. A partial reopening of a deep fold explicitly retained the effect. Opening-pause recovery, short and long closing holds, near closure, simulated wake, sensor loss/wraparound, reconnection, pause, logo and preview assets all passed. A local screen recording contains 955 frames; it is private and is not published.
+
+The Settings window was visually inspected with the bundled physical-lid preview, logo and compact controls. The app was relaunched in normal background mode with automatic folding, login registration, permission and shortcut all ready. A stable 104-degree reading had a clear desktop and a warm capture session; the rendered-frame counter remained unchanged while idle.
+
+The new preview is made from 300 native Metal frames at 60 fps, projected onto a simulated moving lid with original artwork. It is not a camera recording of this MacBook. All 469 consecutive frames of the requested X example were separately inspected; the frame ledger and interpretation limits are documented in [the reference review](reference-frame-review.md). Passing graphics/lifecycle checks does not establish subjective visual acceptance on the physical laptop.
+
+GPU timing at 2560×1600 including upload and prefiltering: 0.999 ms median, 2.609 ms p95. These are GPU measurements, not end-to-end latency guarantees. The installed candidate is Developer ID signed and timestamped with the existing bundle identity. Signature verification passed. No notarization submission was made in this pass.
+
+---
+
 # Fold 1.0.6 verification
 
 Build 13 removes all geometric distortion. The desktop remains at fixed coordinates; the physical lid supplies perspective. Only progressive blur and edge shading change. The blur is clearer near the hinge and stronger toward the outer edge. A wider separable Gaussian with floating-point pyramid textures removes faint coarse-level blur bands.

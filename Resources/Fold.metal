@@ -1,7 +1,7 @@
 #include <metal_stdlib>
 using namespace metal;
 struct VertexOut { float4 position [[position]]; float2 uv; };
-struct Params { float progress, width, height, reducedMotion; };
+struct Params { float progress, width, height, reducedMotion; float opacity, pad0, pad1, pad2; };
 
 // A wider, separable Gaussian keeps each level smooth between texels. Narrow
 // mip kernels produced faint bands when the focus field crossed coarse levels.
@@ -31,12 +31,18 @@ fragment float4 foldFragment(VertexOut in [[stage_in]], texture2d<float> desktop
     constexpr sampler s(coord::normalized, address::clamp_to_edge, filter::linear, mip_filter::linear);
     float progress = clamp(p.progress,0.0f,1.0f);
     float outer = 1.0f-in.uv.y;
-    // The physical lid already supplies perspective. Keep every desktop
-    // coordinate fixed; only focus and illumination change while it folds.
-    // Core Image textures are bottom-up.
-    float2 uv = float2(in.uv.x,outer);
-    float gradient = pow(outer,1.85f);
-    float sigma = 96.0f*pow(progress,0.90f)*gradient*p.width/1600.0f;
+    // Keep the shared perspective that reveals the sides. Full inverse-cosine
+    // compensation assumes an upright starting panel and a fixed eye position;
+    // on a normally inclined laptop it overcorrected height by up to 3.24x.
+    // Retain 60% of that foreshortening correction, bounding vertical expansion
+    // to 1.71x at the deepest pose without a hard clamp or a change on reversal.
+    float rotation = min(72.0f,-40.0f*log(max(0.001f,1.0f-progress)))*M_PI_F/180.0f;
+    rotation *= 1.0f-p.reducedMotion;
+    float perspective = 1.0f/(1.0f-outer*sin(rotation)/2.7f);
+    float heightScale = mix(1.0f,cos(rotation),0.6f);
+    float2 uv = float2(0.5f+(in.uv.x-0.5f)*perspective,outer*heightScale*perspective);
+    float gradient = pow(outer,2.65f);
+    float sigma = 40.0f*pow(progress,0.75f)*gradient*p.width/1600.0f;
     // Interpolate variance between adjacent prefiltered levels for a continuous
     // focus field. At zero progress the original, unfiltered image is exact.
     const float kernelVariance = 7.4790772f;
@@ -46,13 +52,14 @@ fragment float4 foldFragment(VertexOut in [[stage_in]], texture2d<float> desktop
     float variance1 = (exp2(2.0f*(lower+1.0f))-1.0f)*kernelVariance/3.0f;
     float fraction = clamp((sigma*sigma-variance0)/max(variance1-variance0,0.001f),0.0f,1.0f);
     float4 color = desktop.sample(s,uv,level(lower+fraction));
-    color.rgb *= 1.0f-0.10f*progress*gradient;
-    // Rounded side shadows grow with the fold, like a surface turning away
-    // from the light. They shade the live pixels rather than exposing a gutter.
-    float edgeDistance = min(in.uv.x,1.0f-in.uv.x);
-    float edgeWidth = 0.015f+0.12f*pow(progress,0.75f)*(0.20f+0.80f*pow(outer,1.2f));
-    float sideFalloff = exp(-pow(edgeDistance/edgeWidth,2.0f));
-    float sideDepth = 0.80f*pow(progress,0.70f)*(0.06f+0.94f*pow(outer,1.4f));
-    color.rgb *= 1.0f-sideDepth*sideFalloff;
-    return float4(color.rgb,1);
+    color.rgb *= 1.0f-0.24f*progress*pow(outer,3.0f);
+    // The panel moves past the image's sides. These wedges are revealed by
+    // projection, not painted on top of otherwise stretched desktop pixels.
+    float edge = 0.5f-abs(uv.x-0.5f);
+    float softness = 0.003f+0.008f*progress;
+    float coverage = smoothstep(-softness,softness,edge);
+    coverage = mix(1.0f,coverage,smoothstep(0.0f,0.04f,progress));
+    color.rgb *= mix(0.008f,1.0f,coverage);
+    float3 live = desktop.sample(s,float2(in.uv.x,outer),level(0)).rgb;
+    return float4(mix(live,color.rgb,p.opacity),1);
 }
