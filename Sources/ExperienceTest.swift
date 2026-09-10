@@ -37,6 +37,11 @@ enum ExperienceTest {
             check(NSApp.activationPolicy() == .accessory,"Closing Settings removes Dock icon")
             model.activate(); phase("Settings closed · ready at 112°")
         }
+        after(2) { model.testSensorAngle = 111; phase("First closing degree · above the old threshold") }
+        after(2.8) {
+            check(model.overlayIsVisible && model.settings.progress > 0,"First closing degree above 100° presents the live effect")
+            model.testSensorAngle = 112
+        }
         for frame in 0...120 {
             let t = Double(frame)/60
             after(3+t) { model.testSensorAngle = 112-82*(0.5-0.5*cos(t/2 * .pi)); phaseText(model,prefix:"Closing") }

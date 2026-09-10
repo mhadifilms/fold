@@ -44,7 +44,7 @@ A MacBook has one rigid display with a bottom hinge. This app adapts the observe
 
 ## Single effect, revised in 1.0.2
 
-Effect begins below 100°. The style alternatives and tuning sliders are removed. Previously saved appearance settings no longer change the effect.
+The open endpoint follows the observed lid position; the first detected closing degree starts the effect, without waiting to cross 100°. The style alternatives and tuning sliders are removed. Previously saved appearance settings no longer change the effect.
 
 Reviewing the consecutive opening frames again showed a continuous focus gradient, without repeated horizontal copies of sharp content. Version 1.0.2 replaces the nine widely spaced fragment samples and box mipmaps with a Gaussian-prefiltered pyramid and one continuous variance-based sample. A single horizontal stripe at 50° produced secondary intensity rises with the previous shader; the new shader has none in the same fixture. The regression allows one 8-bit quantization step.
 

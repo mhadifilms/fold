@@ -20,7 +20,7 @@ The settings **Automatic folding** switch persists across launches. **Start at l
 
 Holding the lid still for 2.5 seconds clears the effect and releases capture. At 8° or below, the timeout is 350 ms. A continuous transition is bounded to eight seconds. The next lid movement resumes the effect from any position. You do not need to open past a particular angle. Starting while partly closed waits only for movement. Sensor loss, sleep, and session changes immediately clear the effect; movement after recovery resumes it.
 
-There is one reference-inspired effect. **Preview** plays it inside Settings using original sample artwork and needs no screen permission. The three settings control automatic folding, launch at login and the optional menu bar icon.
+Blur begins with the first detected closing movement from your open lid position, including above 100°. Reopening to that position clears it. There is one reference-inspired effect. **Preview** plays it inside Settings using original sample artwork and needs no screen permission. The three settings control automatic folding, launch at login and the optional menu bar icon.
 
 ## Included in 1.0
 

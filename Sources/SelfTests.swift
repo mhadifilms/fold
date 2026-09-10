@@ -30,6 +30,19 @@ enum SelfTests {
             finite = finite && x.isFinite && x>=0 && x<=1
         }
         check(finite && reversal.value<0.0001,"Rapid reversal stays stable and clears")
+        for restingAngle in [70.0,105,120,140] {
+            var reference=LidReference(), gate=FoldSafety()
+            reference.observe(restingAngle)
+            _=gate.permitsEffect(angle:restingAngle,clearAngle:reference.clearAngle,now:0)
+            reference.observe(restingAngle-1)
+            let active=gate.permitsEffect(angle:restingAngle-1,clearAngle:reference.clearAngle,now:1.0/60)
+            check(active && FoldSettings(angle:restingAngle-1,clearAngle:reference.clearAngle).progress>0,"First closing degree starts blur from \(Int(restingAngle))°")
+            reference.observe(restingAngle)
+            check(FoldSettings(angle:restingAngle,clearAngle:reference.clearAngle).progress==0,"Returning to the open position clears from \(Int(restingAngle))°")
+        }
+        var reference=LidReference()
+        reference.observe(359); reference.observe(120); reference.observe(360)
+        check(reference.clearAngle==120,"Closed-sensor wraparound cannot become the open reference")
         var safety = FoldSafety()
         check(!safety.permitsEffect(angle:70,clearAngle:100,now:0),"Stationary launch leaves desktop clear")
         check(safety.permitsEffect(angle:68,clearAngle:100,now:0.1),"Closing from a partly open startup works without opening first")

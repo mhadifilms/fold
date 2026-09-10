@@ -9,7 +9,8 @@ final class OverlayPanel: NSPanel {
 
 final class AppModel: ObservableObject {
     @Published var angle: Double = 58 { didSet { updateAppearance() } }
-    let clearAngle: Double = 100
+    private var lidReference = LidReference()
+    private var clearAngle: Double { lidReference.clearAngle }
     let diagnostic = CommandLine.arguments.contains("--integration-test") || CommandLine.arguments.contains("--experience-test")
     @Published var automatic = UserDefaults.standard.object(forKey: "automatic") as? Bool ?? true
     @Published var showMenuBar = UserDefaults.standard.bool(forKey: "showMenuBar") { didSet {
@@ -65,7 +66,7 @@ final class AppModel: ObservableObject {
     private var statusItem: NSStatusItem?
 
     var settings: FoldSettings {
-        FoldSettings(angle: enabled ? (effectAllowed ? (sensorAngle ?? clearAngle) : clearAngle) : angle, reducedMotion: reducedMotion)
+        FoldSettings(angle: enabled ? (effectAllowed ? (sensorAngle ?? clearAngle) : clearAngle) : angle, clearAngle: enabled ? clearAngle : 100, reducedMotion: reducedMotion)
     }
 
     func setup(requestScreenPermission: Bool = true) {
@@ -127,6 +128,7 @@ final class AppModel: ObservableObject {
         if let value, let previous = lastSensorAngle, value < previous - 0.25 {
             warmCaptureUntil = now + 0.6
         }
+        lidReference.observe(value)
         lastSensorAngle = value
         lastSensorAt = now
         if let value {
@@ -135,6 +137,8 @@ final class AppModel: ObservableObject {
             sensorAngle = nil
             if enabled { safety.suspend(); stopEffect(); message = "Waiting for the lid sensor to reconnect." }
         }
+        // React on the sensor sample, not the slower stale-sensor watchdog.
+        evaluateSafety()
     }
 
     func setAutomatic(_ value: Bool) {
@@ -187,7 +191,7 @@ final class AppModel: ObservableObject {
         guard hasPermission() else { return }
         stopEffect()
         demo = false; enabled = true; safety = FoldSafety(); effectAllowed = false
-        message = "Following your lid. Close it below \(Int(clearAngle))° to fold."
+        message = "Following your lid. Start closing it to fold."
         refreshMenu()
     }
     func previewDesktop() {

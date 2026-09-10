@@ -23,7 +23,7 @@ struct FoldSafety {
         if waitingForMotion {
             guard let restAngle else { self.restAngle = angle; return false }
             // Reject tiny HID jitter while accepting a natural movement in either direction.
-            guard abs(angle-restAngle) >= 1.5 else { return false }
+            guard abs(angle-restAngle) >= 0.75 else { return false }
             waitingForMotion = false; self.restAngle = nil
         }
         if angle >= clearAngle {
@@ -39,5 +39,16 @@ struct FoldSafety {
             suspend(); return false
         }
         return true
+    }
+}
+
+/// Track the open endpoint instead of assuming every desk posture is 100°.
+struct LidReference {
+    private(set) var openingAngle: Double?
+    var clearAngle: Double { max(1, openingAngle ?? 100) }
+    mutating func observe(_ angle: Double?) {
+        // Some sensors report 359/360 while closed; this is not an open posture.
+        guard let angle, angle.isFinite, (0...180).contains(angle) else { return }
+        openingAngle = max(openingAngle ?? angle, angle)
     }
 }

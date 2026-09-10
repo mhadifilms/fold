@@ -2,11 +2,13 @@
 
 One effect replaces the three style variants and appearance sliders. The compact native Settings window has an in-window preview and three behavior switches; saved legacy appearance values are ignored. The installed window was visually inspected in dark mode with the bundled logo, clear preview, readable controls and no scrolling.
 
-The new Gaussian pyramid and projective mapping were compared against the prior renderer using original sample artwork. The horizontal-stripe regression passes at 80°, 50° and 20° with no secondary intensity rises. The previous renderer fails the 50° case (two 8-bit steps of secondary rise; tolerance is one step). All 34 current graphics/recovery checks pass; the count removes ten redundant checks for the deleted styles and adds three band regressions. A new 60 fps preview was rendered with the shipping shader.
+The new Gaussian pyramid and projective mapping were compared against the prior renderer using original sample artwork. The horizontal-stripe regression passes at 80°, 50° and 20° with no secondary intensity rises. The previous renderer fails the 50° case (two 8-bit steps of secondary rise; tolerance is one step). All 43 current graphics/recovery checks pass, including nine checks for onset from different open positions and closed-sensor wraparound, plus three band regressions. A new 60 fps preview was rendered with the shipping shader.
 
 The signed build's GPU command timing at 2560×1600 including upload and prefiltering was 2.563 ms median and 3.759 ms p95. These are single-machine GPU measurements, not end-to-end latency guarantees.
 
-The first installed live test ran while macOS reported the physical lid closed (`AppleClamshellState = Yes`) and produced no display frames. A repeat with the lid open is pending; this run is not counted as a successful live verification.
+Build 8 removes the fixed 100° activation cutoff. The observed open position becomes the clear endpoint, and the first closing degree starts blur. Safety now evaluates each 60 Hz sensor sample, while the independent watchdog still clears stale or held input. The 120 ms fresh-frame handoff remains.
+
+After the physical lid reopened, the normal LaunchServices installation passed all 15 live assertions with scripted sensor input, actual ScreenCaptureKit frames and onscreen Metal presentation. This explicitly includes visible effect onset from 112° to 111°, above the former threshold. The run received 418 frames and presented 493. Held-lid reset, nearly-closed reset, wake and sensor recovery all passed. The earlier closed-lid run produced no display frames and was not counted as successful.
 
 Notarization is still awaiting the user's Apple authentication setup. The build is Developer ID signed and timestamped, not notarized.
 

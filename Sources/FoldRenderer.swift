@@ -4,7 +4,7 @@ import MetalKit
 
 struct FoldSettings: Equatable {
     var angle: Double = 58
-    let clearAngle: Double = 100
+    var clearAngle: Double = 100
     var reducedMotion = false
     var progress: Double {
         guard angle.isFinite, clearAngle.isFinite, clearAngle > 0 else { return 0 }
